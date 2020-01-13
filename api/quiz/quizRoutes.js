@@ -11,7 +11,8 @@ router.post('/create-quiz', isAuth, quizController.createQuizQuestions);
 router.post('/quiz/:quizId', isAuth, quizController.startQuiz);
 
 router.get('/get-users', isAuth, quizController.getUserNumOfGames);
-
+router.get('/num-of-games', quizController.numOfGames);
+router.get('/active-games', quizController.activeGames);
 router.delete('/quiz/:userId', isAdmin, quizController.deleteUserGames);
 
 // router.patch('/reset-questions', quizController.resetQuestionInfo);

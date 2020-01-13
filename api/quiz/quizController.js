@@ -510,7 +510,7 @@ exports.getUserNumOfGames = (req, res, next) => {
         { $sort: { score: -1 } }
     ], (err, result) => {
         let quizPlayed = 0;
-        const ranking = result.map(obj => {
+        const users = result.map(obj => {
             quizPlayed = quizPlayed + obj.score;
             const data = {
                 userId: obj._id.userId[0],
@@ -520,8 +520,71 @@ exports.getUserNumOfGames = (req, res, next) => {
             return data;
         });
         res.json({
-            ranking: ranking,
+            users: users,
             quizPlayed: quizPlayed
+        });
+    });
+}
+
+exports.numOfGames = (req, res, next) => {
+    Quiz.aggregate([
+        {
+            $match: { score: { $gte: 0 } }
+        },
+        {
+            $project: { _id: 1, takenBy: 1, score: 1 }
+        },
+        {
+            $lookup: { from: 'users', localField: 'takenBy', foreignField: '_id', as: 'user' }
+        },
+        {
+            $group:
+            {
+                _id: { userId: "$user._id", fullName: "$user.fullName" },
+                score: { $sum: 1 }
+            }
+        },
+        { $sort: { score: -1 } }
+    ], (err, result) => {
+        let quizPlayed = 0;
+        result.forEach(obj => {
+            quizPlayed = quizPlayed + obj.score;
+        });
+
+        res.json({
+            quizPlayed: quizPlayed
+        });
+    });
+}
+
+exports.activeGames = (req, res, next) => {
+    const time = new Date(Date.now() - 30 * 60 * 1000);
+    Quiz.aggregate([
+        {
+            $match: { createdAt: { $gt: time }, active: true }
+        },
+        {
+            $project: { _id: 1, takenBy: 1, score: 1 }
+        },
+        {
+            $lookup: { from: 'users', localField: 'takenBy', foreignField: '_id', as: 'user' }
+        },
+        {
+            $group:
+            {
+                _id: { userId: "$user._id", fullName: "$user.fullName" },
+                score: { $sum: 1 }
+            }
+        },
+        { $sort: { score: -1 } }
+    ], (err, result) => {
+        let activeGames = 0;
+        result.forEach(obj => {
+            activeGames = activeGames + obj.score;
+        });
+
+        res.json({
+            activeGames: activeGames
         });
     });
 }
