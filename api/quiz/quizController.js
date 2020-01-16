@@ -312,6 +312,40 @@ exports.getRankingList = (req, res, next) => {
     //     });
 }
 
+exports.getBestPlayerToday = (req, res, next) => {
+    const date = new Date();
+    const firstDay = new Date(date.getFullYear(), date.getMonth(), date.getDay() + 13, 0);
+    const lastDay = new Date(date.getFullYear(), date.getMonth(), date.getDay() + 14, 0);
+
+    Quiz.aggregate([
+        {
+            $match: { score: { $gt: 0 }, updatedAt: { $gt: firstDay } }
+        },
+        { $sort: { score: -1, updatedAt: -1 } },
+        {
+            $group: { _id: { takenBy: "$takenBy" }, score: { $max: "$score" }, updatedAt: { $first: "$updatedAt" } }
+        },
+        {
+            $sort: { updatedAt: -1 }
+        },
+        {
+            $lookup: { from: 'users', localField: '_id.takenBy', foreignField: '_id', as: 'user' }
+        },
+        {
+            $sort: { score: -1 }
+        }
+    ], (err, result) => {
+        const ranking = result.map((obj, i) => {
+            const data = {
+                fullName: obj.user[0].fullName,
+                score: obj.score
+            };
+            return data;
+        })
+        res.json(ranking[0]);
+    });
+}
+
 exports.getLastMonthList = (req, res, next) => {
     const date = new Date();
     const firstDay = new Date(date.getFullYear(), date.getMonth() - 1, 1);
