@@ -314,12 +314,12 @@ exports.getRankingList = (req, res, next) => {
 
 exports.getBestPlayerToday = (req, res, next) => {
     const date = new Date();
-    const firstDay = new Date(date.getFullYear(), date.getMonth(), date.getDay() + 13, 0);
-    const lastDay = new Date(date.getFullYear(), date.getMonth(), date.getDay() + 14, 0);
+    const today = new Date(date.getFullYear(), date.getMonth(), date.getDay() + 12, 0);
+    const tomorrow = new Date(date.getFullYear(), date.getMonth(), date.getDay() + 13, 0);
 
     Quiz.aggregate([
         {
-            $match: { score: { $gt: 0 }, updatedAt: { $gt: firstDay } }
+            $match: { score: { $gt: 0 }, updatedAt: { $gt: today, $lt: tomorrow } }
         },
         { $sort: { score: -1, updatedAt: -1 } },
         {

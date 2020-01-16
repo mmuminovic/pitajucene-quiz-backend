@@ -14,7 +14,7 @@ router.get('/get-users', isAuth, quizController.getUserNumOfGames);
 router.get('/num-of-games', isAuth, quizController.numOfGames);
 router.get('/active-games', isAuth, quizController.activeGames);
 router.delete('/quiz/:userId', isAdmin, quizController.deleteUserGames);
-router.get('/best-today', isAuth, quizController.getBestPlayerToday);
+router.get('/best-today', quizController.getBestPlayerToday);
 
 // router.patch('/reset-questions', quizController.resetQuestionInfo);
 
