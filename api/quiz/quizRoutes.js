@@ -22,7 +22,7 @@ router.get('/best-today', quizController.getBestPlayerToday);
 router.get('/myscore/:userId', isAuth, quizController.getMyScore);
 router.get('/thebestscore/:userId', isAuth, quizController.getMyBestScore);
 router.get('/scorelastmonth/:userId', isAuth, quizController.scoreLastMonth);
-router.get('/ranking-list', quizController.getRankingList);
+router.get('/ranking-list', isAuth, quizController.getRankingList);
 router.get('/ranking-list/lastMonth', isAuth, quizController.getLastMonthList);
 router.get('/ranking-list/theBestPlayers', isAuth, quizController.getTheBestRecords);
 

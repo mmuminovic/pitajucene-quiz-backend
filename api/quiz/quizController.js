@@ -313,9 +313,15 @@ exports.getRankingList = (req, res, next) => {
 }
 
 exports.getBestPlayerToday = (req, res, next) => {
-    const date = new Date();
-    const today = new Date(date.getFullYear(), date.getMonth(), date.getDay() + 12, 0);
-    const tomorrow = new Date(date.getFullYear(), date.getMonth(), date.getDay() + 13, 0);
+    const today = new Date()
+    today.setHours(0);
+    today.setMinutes(0);
+    today.setSeconds(0);
+    const tomorrow = new Date(today)
+    tomorrow.setDate(tomorrow.getDate() + 1)
+    tomorrow.setHours(0);
+    tomorrow.setMinutes(0);
+    tomorrow.setSeconds(0);
 
     Quiz.aggregate([
         {
