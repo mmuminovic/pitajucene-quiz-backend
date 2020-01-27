@@ -1,6 +1,7 @@
 const express = require('express');
 const { body } = require('express-validator');
 const router = express.Router();
+const jwt = require('jsonwebtoken');
 
 const userController = require('./userController');
 const isAuth = require('../middlewares/isAuth');
@@ -59,17 +60,26 @@ router.post('/signup', [
 router.get('/users', isAdmin, userController.allUsers);
 
 // Get user's info
-router.get('/users/:userId', userController.getUserInfo);
+router.get('/users/:userId', isAuth, userController.getUserInfo);
 
 // Edit user
 router.patch('/user/:userId',
     body(
         'password',
         'Unesi šifru sa najmanje 6 a najviše 20 karaktera koristeći samo slova i brojeve.'
-    ).trim()
+    )
+        .trim()
         .isLength({ min: 6, max: 20 })
-        .isAlphanumeric(),
-    isAdmin, userController.editUser);
+        .isAlphanumeric()
+        .custom((value, { req }) => {
+            const token = req.headers.authorization;
+            const decoded = jwt.verify(token, process.env.JWT_KEY);
+            if (decoded.userId !== req.params.userId && !decoded.isAdmin) {
+                throw new Error('Vi ne možete mijenjati šifru ovog korisnika.')
+            }
+            return true;
+        }),
+    isAuth, userController.editUser);
 
 // Detele user
 router.delete('/user/:userId', isAdmin, userController.deleteUser);

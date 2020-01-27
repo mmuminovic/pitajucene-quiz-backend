@@ -11,20 +11,20 @@ exports.createQuizQuestions = (req, res, next) => {
         .find()
         .then(result => {
             let allQuestions = [];
-            let pitanja5 = [], pitanja8 = [], pitanja10 = [];
+            let pitanja1 = [], pitanja2 = [], pitanja3 = [];
             for (let i of result) {
-                if (i.points === 5) {
-                    pitanja5.push(i);
-                } else if (i.points === 8) {
-                    pitanja8.push(i);
-                } else if (i.points === 10) {
-                    pitanja10.push(i);
+                if (i.points === 10) {
+                    pitanja1.push(i);
+                } else if (i.points === 15) {
+                    pitanja2.push(i);
+                } else if (i.points === 20) {
+                    pitanja3.push(i);
                 }
             }
-            pitanja5 = shuffle(pitanja5).slice(0, 20);
-            pitanja8 = shuffle(pitanja8).slice(0, 20);
-            pitanja10 = shuffle(pitanja10).slice(0, 20);
-            allQuestions = [...pitanja5, ...pitanja8, ...pitanja10];
+            pitanja1 = shuffle(pitanja1).slice(0, 20);
+            pitanja2 = shuffle(pitanja2).slice(0, 20);
+            pitanja3 = shuffle(pitanja3).slice(0, 20);
+            allQuestions = [...pitanja1, ...pitanja2, ...pitanja3];
 
             let questionIds = allQuestions.map(q => {
                 const data = { question: q._id };
@@ -66,7 +66,7 @@ exports.startQuiz = (req, res, next) => {
 
     Quiz
         .findOne({ _id: quizId })
-        .where('createdAt').gt(new Date(Date.now() - 30 * 60 * 1000))
+        .where('createdAt').gt(new Date(Date.now() - 10 * 60 * 1000))
         .populate({
             path: 'questions.question',
             model: 'Question'
@@ -87,27 +87,8 @@ exports.startQuiz = (req, res, next) => {
                 let answers = [q.question.correct, q.question.answer1, q.question.answer2, q.question.answer3];
                 answers = shuffle(answers);
 
-                // const a = new Date(quiz.createdAt);
-                // const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-                // const year = a.getFullYear();
-                // const month = months[a.getMonth()];
-                // const date = a.getDate();
-                // let hour = a.getHours();
-                // if (hour.toString().length == 1) {
-                //     hour = "0" + hour;
-                // }
-                // let min = a.getMinutes();
-                // if (min.toString().length == 1) {
-                //     min = "0" + min;
-                // }
-                // let sec = a.getSeconds();
-                // if (sec.toString().length == 1) {
-                //     sec = "0" + sec;
-                // }
-                // const time = date + ' ' + month + ' ' + year + ' ' + hour + ':' + min + ':' + sec;
-
                 res.json({
-                    timeRemaining: Math.floor((quiz.createdAt - new Date(Date.now() - 30 * 60 * 1000)) / 1000),
+                    timeRemaining: Math.floor((quiz.createdAt - new Date(Date.now() - 10 * 60 * 1000)) / 1000),
                     question: {
                         id: q.question._id,
                         text: q.question.text,
@@ -195,56 +176,136 @@ exports.deleteUserGames = (req, res, next) => {
 }
 
 exports.getMyScore = (req, res, next) => {
-    const userId = req.params.userId;
+    const userId = mongoose.Types.ObjectId(req.params.userId);
     const date = new Date();
     const firstDay = new Date(date.getFullYear(), date.getMonth(), 1);
     const lastDay = new Date(date.getFullYear(), date.getMonth() + 1, 0);
-    Quiz
-        .find({ takenBy: userId })
-        .sort({ score: -1 })
-        .where('updatedAt').lt(lastDay).gt(firstDay)
-        .limit(1)
-        .then(result => {
-            if (result.length === 0) {
-                res.json({ score: 0 });
-            } else {
-                res.json({ score: result[0].score });
+
+    Quiz.aggregate([
+        {
+            $match: { takenBy: userId, score: { $gt: 0 }, updatedAt: { $gt: firstDay, $lt: lastDay } }
+        },
+        {
+            $sort: { score: -1, updatedAt: -1 }
+        },
+        {
+            $project: { createdAt: 1, updatedAt: 1, score: 1, takenBy: 1, duration: { $subtract: ["$updatedAt", "$createdAt"] } }
+        },
+        // {
+        //     $group: { _id: { takenBy: "$takenBy" }, score: { $max: "$score" }, duration: { $min: "$duration" } }
+        // },
+        // {
+        //     $lookup: { from: 'users', localField: '_id.takenBy', foreignField: '_id', as: 'user' }
+        // },
+        {
+            $sort: { score: -1, duration: 1 }
+        }
+    ], (err, result) => {
+        const ranking = result.map((obj, i) => {
+            let minutes = Math.floor(obj.duration / 60000);
+            let seconds = ((obj.duration % 60000) / 1000).toFixed(0);
+            if (seconds.length === 1) {
+                seconds = `0${seconds}`;
             }
-        });
+            const data = {
+                score: obj.score,
+                duration: `${minutes}:${seconds}`
+            };
+            return data;
+        })
+        res.json(ranking[0]);
+    });
 }
 
 exports.getMyBestScore = (req, res, next) => {
-    const userId = req.params.userId;
-    Quiz
-        .find({ takenBy: userId })
-        .sort({ score: -1 })
-        .limit(1)
-        .then(result => {
-            if (result.length === 0) {
-                res.json({ score: 0 });
-            } else {
-                res.json({ score: result[0].score });
+    const userId = mongoose.Types.ObjectId(req.params.userId);
+
+    Quiz.aggregate([
+        {
+            $match: { takenBy: userId, score: { $gt: 0 } }
+        },
+        {
+            $sort: { score: -1, updatedAt: -1 }
+        },
+        {
+            $project: { createdAt: 1, updatedAt: 1, score: 1, takenBy: 1, duration: { $subtract: ["$updatedAt", "$createdAt"] } }
+        },
+        // {
+        //     $group: { _id: { takenBy: "$takenBy" }, score: { $max: "$score" }, duration: { $min: "$duration" } }
+        // },
+        // {
+        //     $lookup: { from: 'users', localField: '_id.takenBy', foreignField: '_id', as: 'user' }
+        // },
+        {
+            $sort: { score: -1, duration: 1 }
+        }
+    ], (err, result) => {
+        const ranking = result.map((obj, i) => {
+            let minutes = Math.floor(obj.duration / 60000);
+            let seconds = ((obj.duration % 60000) / 1000).toFixed(0);
+            if (seconds.length === 1) {
+                seconds = `0${seconds}`;
             }
-        });
+            const data = {
+                score: obj.score,
+                duration: `${minutes}:${seconds}`
+            };
+            return data;
+        })
+        res.json(ranking[0]);
+    });
+
+
 }
 
 exports.scoreLastMonth = (req, res, next) => {
-    const userId = req.params.userId;
+    const userId = mongoose.Types.ObjectId(req.params.userId);
     const date = new Date();
     const firstDay = new Date(date.getFullYear(), date.getMonth() - 1, 1);
     const lastDay = new Date(date.getFullYear(), date.getMonth(), 0);
-    Quiz
-        .find({ takenBy: userId })
-        .sort({ score: -1 })
-        .where('updatedAt').lt(lastDay).gt(firstDay)
-        .limit(1)
-        .then(result => {
-            if (result.length === 0) {
-                res.json({ score: 0 });
-            } else {
-                res.json({ score: result[0].score });
-            }
-        });
+
+    Quiz.aggregate([
+        {
+            $match: { takenBy: userId, score: { $gt: 0 }, updatedAt: { $gt: firstDay, $lt: lastDay } }
+        },
+        {
+            $sort: { score: -1, updatedAt: -1 }
+        },
+        {
+            $project: { createdAt: 1, updatedAt: 1, score: 1, takenBy: 1, duration: { $subtract: ["$updatedAt", "$createdAt"] } }
+        },
+        // {
+        //     $group: { _id: { takenBy: "$takenBy" }, score: { $max: "$score" }, duration: { $min: "$duration" } }
+        // },
+        // {
+        //     $lookup: { from: 'users', localField: '_id.takenBy', foreignField: '_id', as: 'user' }
+        // },
+        {
+            $sort: { score: -1, duration: 1 }
+        }
+    ], (err, result) => {
+        if (result.length !== 0) {
+            const ranking = result.map((obj, i) => {
+                let minutes = Math.floor(obj.duration / 60000);
+                let seconds = ((obj.duration % 60000) / 1000).toFixed(0);
+                if (seconds.length === 1) {
+                    seconds = `0${seconds}`;
+                }
+                const data = {
+                    score: obj.score,
+                    duration: `${minutes}:${seconds}`
+                };
+                return data;
+            });
+            res.json(ranking[0]);
+        } else {
+            res.json({
+                score: 0,
+                duration: `0:00`
+            })
+        }
+
+    });
 }
 
 // RANKING LIST
@@ -257,59 +318,40 @@ exports.getRankingList = (req, res, next) => {
         {
             $match: { score: { $gt: 0 }, updatedAt: { $gt: firstDay, $lt: lastDay } }
         },
-        { $sort: { score: -1, updatedAt: -1 } },
         {
-            $group: { _id: { takenBy: "$takenBy" }, score: { $max: "$score" }, updatedAt: { $first: "$updatedAt" } }
+            $project: { createdAt: 1, updatedAt: 1, score: 1, takenBy: 1, duration: { $subtract: ["$updatedAt", "$createdAt"] } }
         },
         {
-            $sort: { updatedAt: -1 }
+            $sort: { score: -1, duration: 1 }
+        },
+        {
+            $group: { _id: { takenBy: "$takenBy" }, score: { $max: "$score" }, duration: { $first: "$duration" } }
         },
         {
             $lookup: { from: 'users', localField: '_id.takenBy', foreignField: '_id', as: 'user' }
         },
         {
-            $sort: { score: -1 }
+            $sort: { score: -1, duration: 1 }
         }
-        // {
-        //     $group:
-        //     {
-        //         _id: { userId: "$user._id", fullName: "$user.fullName", updatedAt: { $first: "$updatedAt" } },
-        //         score: { $max: "$score" }
-        //     }
-        // },
     ], (err, result) => {
         const ranking = result.map((obj, i) => {
+            let minutes = Math.floor(obj.duration / 60000);
+            let seconds = ((obj.duration % 60000) / 1000).toFixed(0);
+            if (seconds.length === 1) {
+                seconds = `0${seconds}`;
+            }
             const data = {
                 userId: obj.user[0]._id,
                 fullName: obj.user[0].fullName,
-                score: obj.score
+                score: obj.score,
+                duration: `${minutes}:${seconds}`
             };
             return data;
         })
         res.json(ranking.slice(0, 20));
         // res.json(result);
     });
-    // const date = new Date();
-    // const firstDay = new Date(date.getFullYear(), date.getMonth(), 1);
-    // const lastDay = new Date(date.getFullYear(), date.getMonth() + 1, 0);
-    // Quiz
-    //     .find()
-    //     .sort({ score: -1 })
-    //     .where('updatedAt').lt(lastDay).gt(firstDay)
-    //     .where('score').gt(0)
-    //     .populate('takenBy')
-    //     .limit(10)
-    //     .then(result => {
-    //         const list = result.map(quiz => {
-    //             let userData = {
-    //                 userId: quiz.takenBy._id,
-    //                 fullName: quiz.takenBy.fullName,
-    //                 score: quiz.score
-    //             }
-    //             return userData;
-    //         });
-    //         res.json(list);
-    //     });
+
 }
 
 exports.getBestPlayerToday = (req, res, next) => {
@@ -327,28 +369,37 @@ exports.getBestPlayerToday = (req, res, next) => {
         {
             $match: { score: { $gt: 0 }, updatedAt: { $gt: today, $lt: tomorrow } }
         },
-        { $sort: { score: -1, updatedAt: -1 } },
         {
-            $group: { _id: { takenBy: "$takenBy" }, score: { $max: "$score" }, updatedAt: { $first: "$updatedAt" } }
+            $project: { createdAt: 1, updatedAt: 1, score: 1, takenBy: 1, duration: { $subtract: ["$updatedAt", "$createdAt"] } }
         },
         {
-            $sort: { updatedAt: -1 }
+            $sort: { score: -1, duration: 1 }
+        },
+        {
+            $group: { _id: { takenBy: "$takenBy" }, score: { $max: "$score" }, duration: { $min: "$duration" } }
         },
         {
             $lookup: { from: 'users', localField: '_id.takenBy', foreignField: '_id', as: 'user' }
         },
         {
-            $sort: { score: -1 }
+            $sort: { score: -1, duration: 1 }
         }
     ], (err, result) => {
         const ranking = result.map((obj, i) => {
+            let minutes = Math.floor(obj.duration / 60000);
+            let seconds = ((obj.duration % 60000) / 1000).toFixed(0);
+            if (seconds.length === 1) {
+                seconds = `0${seconds}`;
+            }
             const data = {
                 fullName: obj.user[0].fullName,
-                score: obj.score
+                score: obj.score,
+                duration: `${minutes}:${seconds}`
             };
             return data;
         })
         res.json(ranking[0]);
+
     });
 }
 
@@ -360,52 +411,38 @@ exports.getLastMonthList = (req, res, next) => {
         {
             $match: { score: { $gt: 0 }, updatedAt: { $gt: firstDay, $lt: lastDay } }
         },
-        { $sort: { score: -1, updatedAt: -1 } },
         {
-            $group: { _id: { takenBy: "$takenBy" }, score: { $max: "$score" }, updatedAt: { $first: "$updatedAt" } }
+            $project: { createdAt: 1, updatedAt: 1, score: 1, takenBy: 1, duration: { $subtract: ["$updatedAt", "$createdAt"] } }
         },
         {
-            $sort: { updatedAt: -1 }
+            $sort: { score: -1, duration: 1 }
+        },
+        {
+            $group: { _id: { takenBy: "$takenBy" }, score: { $max: "$score" }, duration: { $min: "$duration" } }
         },
         {
             $lookup: { from: 'users', localField: '_id.takenBy', foreignField: '_id', as: 'user' }
         },
         {
-            $sort: { score: -1 }
+            $sort: { score: -1, duration: 1 }
         }
     ], (err, result) => {
-        const ranking = result.map(obj => {
+        const ranking = result.map((obj, i) => {
+            let minutes = Math.floor(obj.duration / 60000);
+            let seconds = ((obj.duration % 60000) / 1000).toFixed(0);
+            if (seconds.length === 1) {
+                seconds = `0${seconds}`;
+            }
             const data = {
                 userId: obj.user[0]._id,
                 fullName: obj.user[0].fullName,
-                score: obj.score
+                score: obj.score,
+                duration: `${minutes}:${seconds}`
             };
             return data;
         })
-        res.json(ranking.slice(0, 10));
+        res.json(ranking.slice(0, 20));
     });
-
-    // const date = new Date();
-    // const firstDay = new Date(date.getFullYear(), date.getMonth() - 1, 1);
-    // const lastDay = new Date(date.getFullYear(), date.getMonth(), 0);
-    // Quiz
-    //     .find()
-    //     .sort({ score: -1 })
-    //     .where('updatedAt').lt(lastDay).gt(firstDay)
-    //     .where('score').gt(0)
-    //     .populate('takenBy')
-    //     .limit(10)
-    //     .then(result => {
-    //         const users = result.map(quiz => {
-    //             let userData = {
-    //                 userId: quiz.takenBy._id,
-    //                 fullName: quiz.takenBy.fullName,
-    //                 score: quiz.score
-    //             }
-    //             return userData;
-    //         });
-    //         res.json(users);
-    //     });
 }
 
 exports.getTheBestRecords = (req, res, next) => {
@@ -413,47 +450,38 @@ exports.getTheBestRecords = (req, res, next) => {
         {
             $match: { score: { $gt: 0 } }
         },
-        { $sort: { score: -1, updatedAt: -1 } },
         {
-            $group: { _id: { takenBy: "$takenBy" }, score: { $max: "$score" }, updatedAt: { $first: "$updatedAt" } }
+            $project: { createdAt: 1, updatedAt: 1, score: 1, takenBy: 1, duration: { $subtract: ["$updatedAt", "$createdAt"] } }
         },
         {
-            $sort: { updatedAt: -1 }
+            $sort: { score: -1, duration: 1 }
+        },
+        {
+            $group: { _id: { takenBy: "$takenBy" }, score: { $max: "$score" }, duration: { $first: "$duration" } }
         },
         {
             $lookup: { from: 'users', localField: '_id.takenBy', foreignField: '_id', as: 'user' }
         },
         {
-            $sort: { score: -1 }
+            $sort: { score: -1, duration: 1 }
         }
     ], (err, result) => {
-        const ranking = result.map(obj => {
+        const ranking = result.map((obj, i) => {
+            let minutes = Math.floor(obj.duration / 60000);
+            let seconds = ((obj.duration % 60000) / 1000).toFixed(0);
+            if (seconds.length === 1) {
+                seconds = `0${seconds}`;
+            }
             const data = {
                 userId: obj.user[0]._id,
                 fullName: obj.user[0].fullName,
-                score: obj.score
+                score: obj.score,
+                duration: `${minutes}:${seconds}`
             };
             return data;
         })
         res.json(ranking.slice(0, 10));
     });
-    // Quiz
-    //     .find()
-    //     .sort({ score: -1 })
-    //     .where('score').gt(0)
-    //     .populate('takenBy')
-    //     .limit(10)
-    //     .then(result => {
-    //         const users = result.map(quiz => {
-    //             let userData = {
-    //                 userId: quiz.takenBy._id,
-    //                 fullName: quiz.takenBy.fullName,
-    //                 score: quiz.score
-    //             }
-    //             return userData;
-    //         });
-    //         res.json(users);
-    //     });
 }
 
 exports.getQuestionsByCondition = (req, res, next) => {
@@ -598,7 +626,7 @@ exports.numOfGames = (req, res, next) => {
 }
 
 exports.activeGames = (req, res, next) => {
-    const time = new Date(Date.now() - 30 * 60 * 1000);
+    const time = new Date(Date.now() - 10 * 60 * 1000);
     Quiz.aggregate([
         {
             $match: { createdAt: { $gt: time }, active: true }
@@ -629,6 +657,47 @@ exports.activeGames = (req, res, next) => {
     });
 }
 
+exports.playedToday = (req, res, next) => {
+    const today = new Date()
+    today.setHours(0);
+    today.setMinutes(0);
+    today.setSeconds(0);
+    const tomorrow = new Date(today)
+    tomorrow.setDate(tomorrow.getDate() + 1)
+    tomorrow.setHours(0);
+    tomorrow.setMinutes(0);
+    tomorrow.setSeconds(0);
+
+    Quiz.aggregate([
+        {
+            $match: { createdAt: { $gt: today }, updatedAt: { $lt: tomorrow } }
+        },
+        {
+            $project: { _id: 1, takenBy: 1, score: 1 }
+        },
+        {
+            $lookup: { from: 'users', localField: 'takenBy', foreignField: '_id', as: 'user' }
+        },
+        {
+            $group:
+            {
+                _id: { userId: "$user._id", fullName: "$user.fullName" },
+                score: { $sum: 1 }
+            }
+        },
+        { $sort: { score: -1 } }
+    ], (err, result) => {
+        let activeGames = 0;
+        result.forEach(obj => {
+            activeGames = activeGames + obj.score;
+        });
+
+        res.json({
+            playedToday: activeGames
+        });
+    });
+}
+
 exports.resetQuestionInfo = (req, res, next) => {
     Question
         .find()
@@ -639,5 +708,31 @@ exports.resetQuestionInfo = (req, res, next) => {
                 question.save();
             })
             res.json({ reset: 'Reset successful' });
+        })
+}
+
+exports.changeQuestionsPoints = (req, res, next) => {
+    Question
+        .find()
+        .then(questions => {
+            let changes = 0;
+            questions.forEach(question => {
+                if (question.points === 5) {
+                    question.points = 10;
+                    question.save();
+                    changes = changes + 1;
+                } else if (question.points === 8) {
+                    question.points = 15;
+                    question.save();
+                    changes = changes + 1;
+                } else if (question.points === 10) {
+                    question.points = 20;
+                    question.save();
+                    changes = changes + 1;
+                }
+            });
+            res.json({
+                successfulChanges: changes
+            })
         })
 }

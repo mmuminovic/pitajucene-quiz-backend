@@ -118,6 +118,7 @@ exports.editUser = (req, res, next) => {
         error.data = errors.array();
         return res.json({ error: error.data[0].msg });
     }
+    
     const { password } = req.body;
     const userId = req.params.userId;
     bcrypt
@@ -187,7 +188,7 @@ exports.getUserInfo = (req, res, next) => {
                         let incorrect = false;
                         let timeIsUp;
                         if (Object.keys(selectedQuestion).length === 0) {
-                            if (Math.floor((obj.createdAt - new Date(Date.now() - 30 * 60 * 1000)) / 1000) > 0) {
+                            if (Math.floor((obj.createdAt - new Date(Date.now() - 10 * 60 * 1000)) / 1000) > 0) {
                                 timeIsUp = false;
                                 Object.assign(selectedQuestion, {
                                     questionText: 'Ovaj kviz nije završen. Možete ga nastaviti pritiskom na dugme ispod.',

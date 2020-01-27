@@ -14,9 +14,10 @@ router.get('/get-users', isAuth, quizController.getUserNumOfGames);
 router.get('/num-of-games', isAuth, quizController.numOfGames);
 router.get('/active-games', isAuth, quizController.activeGames);
 router.delete('/quiz/:userId', isAdmin, quizController.deleteUserGames);
-router.get('/best-today', quizController.getBestPlayerToday);
+router.get('/best-today', isAuth, quizController.getBestPlayerToday);
+router.get('/played-today', isAuth, quizController.playedToday);
 
-// router.patch('/reset-questions', quizController.resetQuestionInfo);
+router.patch('/change-points', isAdmin, quizController.changeQuestionsPoints);
 
 // Ranking list routes
 router.get('/myscore/:userId', isAuth, quizController.getMyScore);
@@ -39,7 +40,7 @@ router.post('/add-question', [
         .isLength({ min: 5 })
         .withMessage('Tekst pitanja mora imati minimum 5 karaktera'),
     body('points').custom(value => {
-        if (value == 5 || value == 8 || value == 10) {
+        if (value == 10 || value == 15 || value == 20) {
             return true;
         } else {
             return Promise.reject('Unesi ispravno broj bodova.');
@@ -82,7 +83,7 @@ router.patch('/edit-question/:questionId', [
         .isLength({ min: 5 })
         .withMessage('Tekst mora imati minimum 5 karaktera'),
     body('points').custom(value => {
-        if (value == 5 || value == 8 || value == 10) {
+        if (value == 10 || value == 15 || value == 20) {
             return true;
         } else {
             return Promise.reject('Unesi ispravno broj bodova.');
