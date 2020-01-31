@@ -381,7 +381,7 @@ exports.getBestPlayerToday = (req, res, next) => {
             $sort: { score: -1, duration: 1 }
         },
         {
-            $group: { _id: { takenBy: "$takenBy" }, score: { $max: "$score" }, duration: { $min: "$duration" } }
+            $group: { _id: { takenBy: "$takenBy" }, score: { $max: "$score" }, duration: { $first: "$duration" } }
         },
         {
             $lookup: { from: 'users', localField: '_id.takenBy', foreignField: '_id', as: 'user' }
@@ -423,7 +423,7 @@ exports.getLastMonthList = (req, res, next) => {
             $sort: { score: -1, duration: 1 }
         },
         {
-            $group: { _id: { takenBy: "$takenBy" }, score: { $max: "$score" }, duration: { $min: "$duration" } }
+            $group: { _id: { takenBy: "$takenBy" }, score: { $max: "$score" }, duration: { $first: "$duration" } }
         },
         {
             $lookup: { from: 'users', localField: '_id.takenBy', foreignField: '_id', as: 'user' }
@@ -462,7 +462,7 @@ exports.getTheBestRecords = (req, res, next) => {
             $sort: { score: -1, duration: 1 }
         },
         {
-            $group: { _id: { takenBy: "$takenBy" }, score: { $max: "$score" }, duration: { $min: "$duration" } }
+            $group: { _id: { takenBy: "$takenBy" }, score: { $max: "$score" }, duration: { $first: "$duration" } }
         },
         {
             $lookup: { from: 'users', localField: '_id.takenBy', foreignField: '_id', as: 'user' }
