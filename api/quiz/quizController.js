@@ -13,11 +13,11 @@ exports.createQuizQuestions = (req, res, next) => {
             let allQuestions = [];
             let pitanja1 = [], pitanja2 = [], pitanja3 = [];
             for (let i of result) {
-                if (i.points === 10) {
+                if (i.points === 5) {
                     pitanja1.push(i);
-                } else if (i.points === 15) {
+                } else if (i.points === 8) {
                     pitanja2.push(i);
-                } else if (i.points === 20) {
+                } else if (i.points === 10) {
                     pitanja3.push(i);
                 }
             }
@@ -66,7 +66,7 @@ exports.startQuiz = (req, res, next) => {
 
     Quiz
         .findOne({ _id: quizId })
-        .where('createdAt').gt(new Date(Date.now() - 10 * 60 * 1000))
+        .where('createdAt').gt(new Date(Date.now() - 30 * 60 * 1000))
         .populate({
             path: 'questions.question',
             model: 'Question'
@@ -88,7 +88,7 @@ exports.startQuiz = (req, res, next) => {
                 answers = shuffle(answers);
 
                 res.json({
-                    timeRemaining: Math.floor((quiz.createdAt - new Date(Date.now() - 10 * 60 * 1000)) / 1000),
+                    timeRemaining: Math.floor((quiz.createdAt - new Date(Date.now() - 30 * 60 * 1000)) / 1000),
                     question: {
                         id: q.question._id,
                         text: q.question.text,
