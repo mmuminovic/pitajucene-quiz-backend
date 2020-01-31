@@ -310,47 +310,89 @@ exports.scoreLastMonth = (req, res, next) => {
 
 // RANKING LIST
 exports.getRankingList = (req, res, next) => {
-    const date = new Date();
-    const firstDay = new Date(date.getFullYear(), date.getMonth(), 1);
-    const lastDay = new Date(date.getFullYear(), date.getMonth() + 1, 0);
-
-    Quiz.aggregate([
-        {
-            $match: { score: { $gt: 0 }, updatedAt: { $gt: firstDay, $lt: lastDay } }
-        },
-        {
-            $project: { createdAt: 1, updatedAt: 1, score: 1, takenBy: 1, duration: { $subtract: ["$updatedAt", "$createdAt"] } }
-        },
-        {
-            $sort: { score: -1, duration: 1 }
-        },
-        {
-            $group: { _id: { takenBy: "$takenBy" }, score: { $max: "$score" }, duration: { $first: "$duration" } }
-        },
-        {
-            $lookup: { from: 'users', localField: '_id.takenBy', foreignField: '_id', as: 'user' }
-        },
-        {
-            $sort: { score: -1, duration: 1 }
-        }
-    ], (err, result) => {
-        const ranking = result.map((obj, i) => {
-            let minutes = Math.floor(obj.duration / 60000);
-            let seconds = ((obj.duration % 60000) / 1000).toFixed(0);
-            if (seconds.length === 1) {
-                seconds = `0${seconds}`;
+        const date = new Date();
+        const firstDay = new Date(date.getFullYear(), date.getMonth(), 1);
+        const lastDay = new Date(date.getFullYear(), date.getMonth() + 1, 1);
+    
+        Quiz.aggregate([
+            {
+                $match: { score: { $gt: 0 }, updatedAt: { $gt: firstDay, $lt: lastDay } }
+            },
+            { 
+                $sort: { score: -1, updatedAt: -1 } },
+            {
+                $group: { _id: { takenBy: "$takenBy" }, score: { $max: "$score" }, updatedAt: { $first: "$updatedAt" } }
+            },
+            {
+                $sort: { updatedAt: -1 }
+            },
+            {
+                $lookup: { from: 'users', localField: '_id.takenBy', foreignField: '_id', as: 'user' }
+            },
+            {
+                $sort: { score: -1 }
             }
-            const data = {
-                userId: obj.user[0]._id,
-                fullName: obj.user[0].fullName,
-                score: obj.score,
-                duration: `${minutes}:${seconds}`
-            };
-            return data;
-        })
-        res.json(ranking.slice(0, 20));
-        // res.json(result);
-    });
+            // {
+            //     $group:
+            //     {
+            //         _id: { userId: "$user._id", fullName: "$user.fullName", updatedAt: { $first: "$updatedAt" } },
+            //         score: { $max: "$score" }
+            //     }
+            // },
+        ], (err, result) => {
+            const ranking = result.map((obj, i) => {
+                const data = {
+                    userId: obj.user[0]._id,
+                    fullName: obj.user[0].fullName,
+                    score: obj.score
+                };
+                return data;
+            })
+            res.json(ranking.slice(0, 20));
+            // res.json(result);
+        });
+
+    // const date = new Date();
+    // const firstDay = new Date(date.getFullYear(), date.getMonth(), 1);
+    // const lastDay = new Date(date.getFullYear(), date.getMonth() + 1, 0);
+
+    // Quiz.aggregate([
+    //     {
+    //         $match: { score: { $gt: 0 }, updatedAt: { $gt: firstDay, $lt: lastDay } }
+    //     },
+    //     {
+    //         $project: { createdAt: 1, updatedAt: 1, score: 1, takenBy: 1, duration: { $subtract: ["$updatedAt", "$createdAt"] } }
+    //     },
+    //     {
+    //         $sort: { score: -1, duration: 1 }
+    //     },
+    //     {
+    //         $group: { _id: { takenBy: "$takenBy" }, score: { $max: "$score" }, duration: { $first: "$duration" } }
+    //     },
+    //     {
+    //         $lookup: { from: 'users', localField: '_id.takenBy', foreignField: '_id', as: 'user' }
+    //     },
+    //     {
+    //         $sort: { score: -1, duration: 1 }
+    //     }
+    // ], (err, result) => {
+    //     const ranking = result.map((obj, i) => {
+    //         let minutes = Math.floor(obj.duration / 60000);
+    //         let seconds = ((obj.duration % 60000) / 1000).toFixed(0);
+    //         if (seconds.length === 1) {
+    //             seconds = `0${seconds}`;
+    //         }
+    //         const data = {
+    //             userId: obj.user[0]._id,
+    //             fullName: obj.user[0].fullName,
+    //             score: obj.score,
+    //             duration: `${minutes}:${seconds}`
+    //         };
+    //         return data;
+    //     })
+    //     res.json(ranking.slice(0, 20));
+    //     // res.json(result);
+    // });
 
 }
 
@@ -406,43 +448,74 @@ exports.getBestPlayerToday = (req, res, next) => {
 exports.getLastMonthList = (req, res, next) => {
     const date = new Date();
     const firstDay = new Date(date.getFullYear(), date.getMonth() - 1, 1);
-    const lastDay = new Date(date.getFullYear(), date.getMonth(), 0);
+    const lastDay = new Date(date.getFullYear(), date.getMonth(), 1);
     Quiz.aggregate([
         {
             $match: { score: { $gt: 0 }, updatedAt: { $gt: firstDay, $lt: lastDay } }
         },
+        { $sort: { score: -1, updatedAt: -1 } },
         {
-            $project: { createdAt: 1, updatedAt: 1, score: 1, takenBy: 1, duration: { $subtract: ["$updatedAt", "$createdAt"] } }
+            $group: { _id: { takenBy: "$takenBy" }, score: { $max: "$score" }, updatedAt: { $first: "$updatedAt" } }
         },
         {
-            $sort: { score: -1, duration: 1 }
-        },
-        {
-            $group: { _id: { takenBy: "$takenBy" }, score: { $max: "$score" }, duration: { $min: "$duration" } }
+            $sort: { updatedAt: -1 }
         },
         {
             $lookup: { from: 'users', localField: '_id.takenBy', foreignField: '_id', as: 'user' }
         },
         {
-            $sort: { score: -1, duration: 1 }
+            $sort: { score: -1 }
         }
     ], (err, result) => {
-        const ranking = result.map((obj, i) => {
-            let minutes = Math.floor(obj.duration / 60000);
-            let seconds = ((obj.duration % 60000) / 1000).toFixed(0);
-            if (seconds.length === 1) {
-                seconds = `0${seconds}`;
-            }
+        const ranking = result.map(obj => {
             const data = {
                 userId: obj.user[0]._id,
                 fullName: obj.user[0].fullName,
-                score: obj.score,
-                duration: `${minutes}:${seconds}`
+                score: obj.score
             };
             return data;
         })
-        res.json(ranking.slice(0, 20));
+        res.json(ranking.slice(0, 10));
     });
+    // const date = new Date();
+    // const firstDay = new Date(date.getFullYear(), date.getMonth() - 1, 1);
+    // const lastDay = new Date(date.getFullYear(), date.getMonth(), 0);
+    // Quiz.aggregate([
+    //     {
+    //         $match: { score: { $gt: 0 }, updatedAt: { $gt: firstDay, $lt: lastDay } }
+    //     },
+    //     {
+    //         $project: { createdAt: 1, updatedAt: 1, score: 1, takenBy: 1, duration: { $subtract: ["$updatedAt", "$createdAt"] } }
+    //     },
+    //     {
+    //         $sort: { score: -1, duration: 1 }
+    //     },
+    //     {
+    //         $group: { _id: { takenBy: "$takenBy" }, score: { $max: "$score" }, duration: { $min: "$duration" } }
+    //     },
+    //     {
+    //         $lookup: { from: 'users', localField: '_id.takenBy', foreignField: '_id', as: 'user' }
+    //     },
+    //     {
+    //         $sort: { score: -1, duration: 1 }
+    //     }
+    // ], (err, result) => {
+    //     const ranking = result.map((obj, i) => {
+    //         let minutes = Math.floor(obj.duration / 60000);
+    //         let seconds = ((obj.duration % 60000) / 1000).toFixed(0);
+    //         if (seconds.length === 1) {
+    //             seconds = `0${seconds}`;
+    //         }
+    //         const data = {
+    //             userId: obj.user[0]._id,
+    //             fullName: obj.user[0].fullName,
+    //             score: obj.score,
+    //             duration: `${minutes}:${seconds}`
+    //         };
+    //         return data;
+    //     })
+    //     res.json(ranking.slice(0, 20));
+    // });
 }
 
 exports.getTheBestRecords = (req, res, next) => {
@@ -450,38 +523,68 @@ exports.getTheBestRecords = (req, res, next) => {
         {
             $match: { score: { $gt: 0 } }
         },
+        { 
+            $sort: { score: -1, updatedAt: -1 } },
         {
-            $project: { createdAt: 1, updatedAt: 1, score: 1, takenBy: 1, duration: { $subtract: ["$updatedAt", "$createdAt"] } }
+            $group: { _id: { takenBy: "$takenBy" }, score: { $max: "$score" }, updatedAt: { $first: "$updatedAt" } }
         },
         {
-            $sort: { score: -1, duration: 1 }
-        },
-        {
-            $group: { _id: { takenBy: "$takenBy" }, score: { $max: "$score" }, duration: { $first: "$duration" } }
+            $sort: { updatedAt: -1 }
         },
         {
             $lookup: { from: 'users', localField: '_id.takenBy', foreignField: '_id', as: 'user' }
         },
         {
-            $sort: { score: -1, duration: 1 }
+            $sort: { score: -1 }
         }
     ], (err, result) => {
-        const ranking = result.map((obj, i) => {
-            let minutes = Math.floor(obj.duration / 60000);
-            let seconds = ((obj.duration % 60000) / 1000).toFixed(0);
-            if (seconds.length === 1) {
-                seconds = `0${seconds}`;
-            }
+        const ranking = result.map(obj => {
             const data = {
                 userId: obj.user[0]._id,
                 fullName: obj.user[0].fullName,
-                score: obj.score,
-                duration: `${minutes}:${seconds}`
+                score: obj.score
             };
             return data;
         })
         res.json(ranking.slice(0, 10));
     });
+    
+    // Quiz.aggregate([
+    //     {
+    //         $match: { score: { $gt: 0 } }
+    //     },
+    //     {
+    //         $project: { createdAt: 1, updatedAt: 1, score: 1, takenBy: 1, duration: { $subtract: ["$updatedAt", "$createdAt"] } }
+    //     },
+    //     {
+    //         $sort: { score: -1, duration: 1 }
+    //     },
+    //     {
+    //         $group: { _id: { takenBy: "$takenBy" }, score: { $max: "$score" }, duration: { $first: "$duration" } }
+    //     },
+    //     {
+    //         $lookup: { from: 'users', localField: '_id.takenBy', foreignField: '_id', as: 'user' }
+    //     },
+    //     {
+    //         $sort: { score: -1, duration: 1 }
+    //     }
+    // ], (err, result) => {
+    //     const ranking = result.map((obj, i) => {
+    //         let minutes = Math.floor(obj.duration / 60000);
+    //         let seconds = ((obj.duration % 60000) / 1000).toFixed(0);
+    //         if (seconds.length === 1) {
+    //             seconds = `0${seconds}`;
+    //         }
+    //         const data = {
+    //             userId: obj.user[0]._id,
+    //             fullName: obj.user[0].fullName,
+    //             score: obj.score,
+    //             duration: `${minutes}:${seconds}`
+    //         };
+    //         return data;
+    //     })
+    //     res.json(ranking.slice(0, 10));
+    // });
 }
 
 exports.getQuestionsByCondition = (req, res, next) => {
