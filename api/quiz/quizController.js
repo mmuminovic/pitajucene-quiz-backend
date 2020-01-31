@@ -446,7 +446,7 @@ exports.getLastMonthList = (req, res, next) => {
             };
             return data;
         })
-        res.json(ranking.slice(0, 20));
+        res.json(ranking.slice(0, 10));
     });
 }
 
