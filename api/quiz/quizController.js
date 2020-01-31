@@ -414,7 +414,7 @@ exports.getLastMonthList = (req, res, next) => {
     const lastDay = new Date(date.getFullYear(), date.getMonth(), 1);
     Quiz.aggregate([
         {
-            $match: { score: { $gt: 0 }, updatedAt: { $gte: firstDay, $lt: lastDay } }
+            $match: { score: { $gt: 0 }, updatedAt: { $gt: firstDay, $lt: lastDay } }
         },
         {
             $project: { createdAt: 1, updatedAt: 1, score: 1, takenBy: 1, duration: { $subtract: ["$updatedAt", "$createdAt"] } }
@@ -423,7 +423,7 @@ exports.getLastMonthList = (req, res, next) => {
             $sort: { score: -1, duration: 1 }
         },
         {
-            $group: { _id: { takenBy: "$takenBy" }, score: { $max: "$score" }, duration: { $min: "$duration" } }
+            $group: { _id: { takenBy: "$takenBy" }, score: { $max: "$score" }, duration: { $first: "$duration" } }
         },
         {
             $lookup: { from: 'users', localField: '_id.takenBy', foreignField: '_id', as: 'user' }
