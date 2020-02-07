@@ -11,6 +11,7 @@ const schedule = require('node-schedule');
 const questionRoutes = require('./api/quiz/quizRoutes');
 const userRoutes = require('./api/user/userRoutes');
 const reportsRoutes = require('./api/reports/reportsRouter');
+const quoteRoutes = require('./api/quotes/quotesRoutes');
 
 const MONGODB_URI = `${process.env.MONGOLAB_RED_URI}`;
 
@@ -36,6 +37,7 @@ app.use(compression());
 app.use(questionRoutes);
 app.use(userRoutes);
 app.use(reportsRoutes);
+app.use('/quotes', quoteRoutes);
 
 mongoose
     .connect(MONGODB_URI, { useNewUrlParser: true, useUnifiedTopology: true, useCreateIndex: true })

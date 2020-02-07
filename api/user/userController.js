@@ -118,7 +118,7 @@ exports.editUser = (req, res, next) => {
         error.data = errors.array();
         return res.json({ error: error.data[0].msg });
     }
-    
+
     const { password } = req.body;
     const userId = req.params.userId;
     bcrypt
@@ -197,7 +197,7 @@ exports.getUserInfo = (req, res, next) => {
                             } else {
                                 timeIsUp = true;
                                 Object.assign(selectedQuestion, {
-                                    questionText: 'Niste završili kviz. Predviđeno vreme za igranje kviza je isteklo.',
+                                    questionText: 'Niste završili kviz. Predviđeno vrijeme za igranje kviza je isteklo.',
                                     questionLink: 'Time is up.'
                                 });
                             }

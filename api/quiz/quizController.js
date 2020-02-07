@@ -73,7 +73,7 @@ exports.startQuiz = (req, res, next) => {
         .then(quiz => {
             if (!quiz) {
                 res.json({
-                    message: 'Predviđeno vreme za igranje kviza je isteklo. Ostvareni rezultat biće sačuvan. Počnite ponovo.',
+                    message: 'Predviđeno vrijeme za igranje kviza je isteklo. Ostvareni rezultat biće sačuvan. Počnite ponovo.',
                     gameover: true
                 });
             } else if (!quiz.active) {
@@ -150,25 +150,19 @@ exports.startQuiz = (req, res, next) => {
                     quiz.active = false;
                     quiz.questions[quiz.questions.indexOf(questions[0])].isAnsweredCorrectly = false;
                     quiz.questions[quiz.questions.indexOf(questions[0])].isAnswered = true;
+                    let link = questions[0].question.link
                     quiz.save().then(result => {
                         res.json({
                             message: 'Netačan odgovor!',
                             incorrect: true,
-                            score: quiz.score
+                            score: quiz.score,
+                            link: link
                         });
                     })
                 }
             }
         });
 
-}
-
-exports.getQuestionLink = (req, res, next) => {
-    const questionId = req.params.questionId;
-    Question.findOne({ _id: questionId })
-        .then(question => {
-            res.json({ link: question.link });
-        })
 }
 
 
@@ -532,7 +526,7 @@ exports.editQustion = (req, res, next) => {
     }
     const questionId = req.params.questionId;
     const newData = req.body;
-    Question.update({ _id: questionId }, newData).then(result => res.json(result));
+    Question.updateOne({ _id: questionId }, newData).then(result => res.json(result));
 }
 
 exports.deleteQuestion = (req, res, next) => {

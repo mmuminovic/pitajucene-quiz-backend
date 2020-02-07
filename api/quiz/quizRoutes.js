@@ -17,8 +17,6 @@ router.delete('/quiz/:userId', isAdmin, quizController.deleteUserGames);
 router.get('/best-today', isAuth, quizController.getBestPlayerToday);
 router.get('/played-today', isAuth, quizController.playedToday);
 
-// Change points
-// router.patch('/change-points', isAdmin, quizController.changeQuestionsPoints);
 
 // Ranking list routes
 router.get('/myscore/:userId', isAuth, quizController.getMyScore);
@@ -34,7 +32,6 @@ router.get('/questions/unsuccessful', isAdmin, quizController.theMostUnsuccessfu
 
 // Question routes
 router.post('/get-by-condition', isAdmin, quizController.getQuestionsByCondition);
-router.get('/get-link/:questionId', isAuth, quizController.getQuestionLink);
 
 // Add question
 router.post('/add-question', [
