@@ -4,19 +4,23 @@ const { shuffle } = require('../shuffle');
 
 exports.getAllQuotes = (req, res, next) => {
     Quote.find().then(quotes => {
-        const data = quotes.map(el => {
-            let likes = el.likedBy.length;
-            let quote;
-            quote = {
-                quoteId: el._id,
-                quoteText: el.quoteText,
-                quoteAuthor: el.quoteAuthor,
-                quoteSource: el.quoteSource,
-                likes: likes
-            }
-            return quote;
-        });
-        res.json(data);
+        if (quotes.length === 0) {
+            res.json(quotes)
+        } else {
+            const data = quotes.map(el => {
+                let likes = el.likedBy.length;
+                let quote;
+                quote = {
+                    quoteId: el._id,
+                    quoteText: el.quoteText,
+                    quoteAuthor: el.quoteAuthor,
+                    quoteSource: el.quoteSource,
+                    likes: likes
+                }
+                return quote;
+            });
+            res.json(data);
+        }
     })
 }
 
@@ -38,31 +42,44 @@ exports.getRandomQuote = (req, res, next) => {
     Quote
         .find()
         .then(quotes => {
-            let shuffledQuotes = shuffle(quotes);
-            let likes = shuffledQuotes[0].likedBy.length;
-            let likedByMe;
-            if (shuffledQuotes[0].likedBy.length === 0) {
-                likedByMe = false;
-            } else if (shuffledQuotes[0].likedBy.some(e => {
-                if (e.user) {
-                    return e.user.toString() === userId
-                } else {
-                    return false;
+            if (quotes.length === 0) {
+                let quote = {
+                    quoteId: null,
+                    quoteText: null,
+                    quoteAuthor: null,
+                    quoteSource: null,
+                    likes: 0,
+                    likedByMe: false
                 }
-            })) {
-                likedByMe = true;
+                res.json(quote)
             } else {
-                likedByMe = false;
+                let shuffledQuotes = shuffle(quotes);
+                let likes = shuffledQuotes[0].likedBy.length;
+                let likedByMe;
+                if (shuffledQuotes[0].likedBy.length === 0) {
+                    likedByMe = false;
+                } else if (shuffledQuotes[0].likedBy.some(e => {
+                    if (e.user) {
+                        return e.user.toString() === userId
+                    } else {
+                        return false;
+                    }
+                })) {
+                    likedByMe = true;
+                } else {
+                    likedByMe = false;
+                }
+
+                let quote = {
+                    quoteId: shuffledQuotes[0]._id,
+                    quoteText: shuffledQuotes[0].quoteText,
+                    quoteAuthor: shuffledQuotes[0].quoteAuthor,
+                    quoteSource: shuffledQuotes[0].quoteSource,
+                    likes: likes,
+                    likedByMe: likedByMe
+                }
+                res.json(quote);
             }
-            let quote = {
-                quoteId: shuffledQuotes[0]._id,
-                quoteText: shuffledQuotes[0].quoteText,
-                quoteAuthor: shuffledQuotes[0].quoteAuthor,
-                quoteSource: shuffledQuotes[0].quoteSource,
-                likes: likes,
-                likedByMe: likedByMe
-            }
-            res.json(quote);
         })
 }
 
@@ -86,18 +103,16 @@ exports.likeQuote = (req, res, next) => {
     Quote.findOne({ _id: quoteId })
         .then(quote => {
             if (quote.likedBy.length === 0) {
-                quote.likedBy.push(userId);
+                quote.likedBy.push({ user: userId });
                 quote.save();
             } else if (quote.likedBy.some(e => {
                 if (e.user) {
                     return e.user.toString() === userId
-                } else {
-                    return false;
                 }
             })) {
                 res.json({ message: 'Status je već lajkovan.' });
             } else {
-                quote.likedBy.push(userId);
+                quote.likedBy.push({ user: userId });
                 quote.save();
             }
         })
