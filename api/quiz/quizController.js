@@ -62,6 +62,7 @@ exports.startQuiz = (req, res, next) => {
     const quizId = req.params.quizId;
     const ans = req.body.answer;
     const continuing = req.body.continuing ? req.body.continuing : false;
+    const skip = req.body.skip;
 
     Quiz
         .findOne({ _id: quizId })
@@ -99,6 +100,38 @@ exports.startQuiz = (req, res, next) => {
                     },
                     score: quiz.score,
                     gameover: false
+                });
+            } else if (quiz.active && skip) {
+                let questions = quiz.questions.filter(question => question.isAnswered === false);
+                quiz.questions[quiz.questions.indexOf(questions[0])].isAnswered = true;
+                quiz.save().then(result => {
+                    if (questions[1]) {
+                        let answers = [questions[1].question.correct, questions[1].question.answer1, questions[1].question.answer2, questions[1].question.answer3];
+                        answers = shuffle(answers);
+                        res.json({
+                            question: {
+                                id: questions[1].question._id,
+                                text: questions[1].question.text,
+                                answer0: answers[0],
+                                answer1: answers[1],
+                                answer2: answers[2],
+                                answer3: answers[3],
+                                points: questions[1].question.points
+                            },
+                            score: quiz.score,
+                            gameover: false
+                        });
+                    } else {
+                        quiz.active = false;
+                        quiz.save().then(result => {
+                            res.json({
+                                message: 'Stigli ste do kraja kviza. Čestitamo!',
+                                finished: true,
+                                gameover: true,
+                                score: quiz.score
+                            });
+                        });
+                    }
                 });
             } else {
                 let questions = quiz.questions.filter(question => question.isAnswered === false);
