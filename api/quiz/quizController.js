@@ -84,6 +84,8 @@ exports.startQuiz = (req, res, next) => {
                 });
             } else if (quiz.active && continuing) {
                 const q = quiz.questions.find(question => !question.isAnswered && !question.isAnsweredCorrectly);
+                const mappedQuestions = quiz.questions.map(q => q.question._id);
+                const ordinalNumberOfQuestion = mappedQuestions.indexOf(q.question._id) + 1;
                 let answers = [q.question.correct, q.question.answer1, q.question.answer2, q.question.answer3];
                 answers = shuffle(answers);
 
@@ -96,7 +98,8 @@ exports.startQuiz = (req, res, next) => {
                         answer1: answers[1],
                         answer2: answers[2],
                         answer3: answers[3],
-                        points: q.question.points
+                        points: q.question.points,
+                        num: ordinalNumberOfQuestion
                     },
                     score: quiz.score,
                     gameover: false
@@ -343,8 +346,20 @@ exports.scoreLastMonth = (req, res, next) => {
 // RANKING LIST
 exports.getRankingList = (req, res, next) => {
     const date = new Date();
-    const firstDay = new Date(date.getFullYear(), date.getMonth(), 1);
-    const lastDay = new Date(date.getFullYear(), date.getMonth() + 1, 1);
+    let firstDay = new Date(date.getFullYear(), date.getMonth(), 1);
+    let lastDay = new Date(date.getFullYear(), date.getMonth(), 15);
+    if (Date.now() > lastDay) {
+        firstDay = new Date(date.getFullYear(), date.getMonth(), 15);
+        lastDay = new Date(date.getFullYear(), date.getMonth() + 1, 1);
+    }
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const [year1, year2] = [firstDay.getFullYear(), lastDay.getFullYear()];
+    const [month1, month2] = [months[firstDay.getMonth()], months[lastDay.getMonth()]];
+    const [day1, day2] = [firstDay.getDate(), lastDay.getDate()];
+    const time1 = day1 + ' ' + month1 + ' ' + year1;
+    const time2 = day2 + ' ' + month2 + ' ' + year2;
+
+    const rankingListTitle = `${time1} - ${time2}`;
 
     Quiz.aggregate([
         {
@@ -380,7 +395,10 @@ exports.getRankingList = (req, res, next) => {
             };
             return data;
         })
-        res.json(ranking.slice(0, 20));
+        res.json({
+            rankingList: ranking.slice(0, 20),
+            rankingListTitle: rankingListTitle
+        });
         // res.json(result);
     });
 
@@ -437,8 +455,21 @@ exports.getBestPlayerToday = (req, res, next) => {
 
 exports.getLastMonthList = (req, res, next) => {
     const date = new Date();
-    const firstDay = new Date(date.getFullYear(), date.getMonth() - 1, 1);
-    const lastDay = new Date(date.getFullYear(), date.getMonth(), 1);
+    let firstDay = new Date(date.getFullYear(), date.getMonth(), 1);
+    let lastDay = new Date(date.getFullYear(), date.getMonth(), 15);
+    if (Date.now() < lastDay) {
+        firstDay = new Date(date.getFullYear(), date.getMonth() - 1, 15);
+        lastDay = new Date(date.getFullYear(), date.getMonth(), 1);
+    }
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const [year1, year2] = [firstDay.getFullYear(), lastDay.getFullYear()];
+    const [month1, month2] = [months[firstDay.getMonth()], months[lastDay.getMonth()]];
+    const [day1, day2] = [firstDay.getDate(), lastDay.getDate()];
+    const time1 = day1 + ' ' + month1 + ' ' + year1;
+    const time2 = day2 + ' ' + month2 + ' ' + year2;
+
+    const rankingListTitle = `${time1} - ${time2}`;
+
     Quiz.aggregate([
         {
             $match: { score: { $gt: 0 }, updatedAt: { $gt: firstDay, $lt: lastDay } }
@@ -473,7 +504,10 @@ exports.getLastMonthList = (req, res, next) => {
             };
             return data;
         })
-        res.json(ranking.slice(0, 10));
+        res.json({
+            rankingList: ranking.slice(0, 10),
+            rankingListTitle: rankingListTitle
+        });
     });
 }
 

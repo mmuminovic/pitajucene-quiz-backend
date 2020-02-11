@@ -177,30 +177,27 @@ exports.getUserInfo = (req, res, next) => {
                         }
                         const time = date + ' ' + month + ' ' + year + ' ' + hour + ':' + min + ':' + sec;
                         let selectedQuestion = {};
-                        for (let q of obj.questions) {
-                            if (q.isAnswered && !q.isAnsweredCorrectly && q.question) {
-                                Object.assign(selectedQuestion, {
-                                    questionText: q.question.text,
-                                    questionLink: q.question.link
-                                });
-                            }
+                        let wrongAnswer = obj.questions.find(q => q.isAnswered && !q.isAnsweredCorrectly && q.question);
+                        if (wrongAnswer) {
+                            Object.assign(selectedQuestion, {
+                                questionText: wrongAnswer.question.text,
+                                questionLink: wrongAnswer.question.link
+                            });
                         }
                         let incorrect = false;
                         let timeIsUp;
-                        if (Object.keys(selectedQuestion).length === 0) {
-                            if (Math.floor((obj.createdAt - new Date(Date.now() - 10 * 60 * 1000)) / 1000) > 0) {
-                                timeIsUp = false;
-                                Object.assign(selectedQuestion, {
-                                    questionText: 'Ovaj kviz nije završen. Možete ga nastaviti pritiskom na dugme ispod.',
-                                    questionLink: obj._id
-                                });
-                            } else {
-                                timeIsUp = true;
-                                Object.assign(selectedQuestion, {
-                                    questionText: 'Niste završili kviz. Predviđeno vrijeme za igranje kviza je isteklo.',
-                                    questionLink: 'Time is up.'
-                                });
-                            }
+                        if (Math.floor((obj.createdAt - new Date(Date.now() - 10 * 60 * 1000)) / 1000) > 0 && obj.active) {
+                            timeIsUp = false;
+                            Object.assign(selectedQuestion, {
+                                questionText: 'Ovaj kviz nije završen. Možete ga nastaviti pritiskom na dugme ispod.',
+                                questionLink: obj._id
+                            });
+                        } else if (Math.floor((obj.createdAt - new Date(Date.now() - 10 * 60 * 1000)) / 1000) <= 0 && obj.active) {
+                            timeIsUp = true;
+                            Object.assign(selectedQuestion, {
+                                questionText: 'Niste završili kviz. Predviđeno vrijeme za igranje kviza je isteklo.',
+                                questionLink: 'Time is up.'
+                            });
                         } else {
                             incorrect = true;
                             timeIsUp = true;
