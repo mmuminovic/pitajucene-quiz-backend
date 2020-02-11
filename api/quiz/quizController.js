@@ -192,7 +192,8 @@ exports.startQuiz = (req, res, next) => {
                             message: 'Netačan odgovor!',
                             incorrect: true,
                             score: quiz.score,
-                            link: link
+                            link: link,
+                            correct: questions[0].question.correct
                         });
                     })
                 }
