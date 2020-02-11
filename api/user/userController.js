@@ -187,13 +187,13 @@ exports.getUserInfo = (req, res, next) => {
                             incorrect = true;
                         }
                         let timeIsUp;
-                        if (Math.floor((obj.createdAt - new Date(Date.now() - 10 * 60 * 1000)) / 1000) > 0 && obj.active) {
+                        if (((obj.createdAt - new Date(Date.now() - 10 * 60 * 1000)) / 1000) > 0 && obj.active) {
                             timeIsUp = false;
                             Object.assign(selectedQuestion, {
                                 questionText: 'Ovaj kviz nije završen. Možete ga nastaviti pritiskom na dugme ispod.',
                                 questionLink: obj._id
                             });
-                        } else if (Math.floor((obj.createdAt - new Date(Date.now() - 10 * 60 * 1000)) / 1000) <= 0 && obj.active) {
+                        } else if (((obj.createdAt - new Date(Date.now() - 10 * 60 * 1000)) / 1000) <= 0 && !incorrect) {
                             timeIsUp = true;
                             Object.assign(selectedQuestion, {
                                 questionText: 'Niste završili kviz. Predviđeno vrijeme za igranje kviza je isteklo.',
