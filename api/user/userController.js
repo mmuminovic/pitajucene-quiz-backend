@@ -177,14 +177,15 @@ exports.getUserInfo = (req, res, next) => {
                         }
                         const time = date + ' ' + month + ' ' + year + ' ' + hour + ':' + min + ':' + sec;
                         let selectedQuestion = {};
+                        let incorrect = false;
                         let wrongAnswer = obj.questions.find(q => q.isAnswered && !q.isAnsweredCorrectly && q.question);
                         if (wrongAnswer) {
                             Object.assign(selectedQuestion, {
                                 questionText: wrongAnswer.question.text,
                                 questionLink: wrongAnswer.question.link
                             });
+                            incorrect = true;
                         }
-                        let incorrect = false;
                         let timeIsUp;
                         if (Math.floor((obj.createdAt - new Date(Date.now() - 10 * 60 * 1000)) / 1000) > 0 && obj.active) {
                             timeIsUp = false;
@@ -199,7 +200,6 @@ exports.getUserInfo = (req, res, next) => {
                                 questionLink: 'Time is up.'
                             });
                         } else {
-                            incorrect = true;
                             timeIsUp = true;
                         }
 
