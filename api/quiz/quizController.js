@@ -5,6 +5,15 @@ const Quiz = require('./quizModel');
 const User = require('../user/userModel');
 const { validationResult } = require('express-validator');
 
+exports.deleteQuizzes = (req, res, next) => {
+    Quiz
+        .deleteMany({ score: { $lte: 50 } })
+        .then(q => {
+            res.json(q);
+        })
+
+}
+
 exports.createQuizQuestions = (req, res, next) => {
     const userId = req.body.userId;
     Question
