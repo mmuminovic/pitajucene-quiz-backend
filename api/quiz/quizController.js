@@ -663,6 +663,9 @@ exports.getUserNumOfGames = (req, res, next) => {
             };
             return data;
         });
+
+        quizPlayed = quizPlayed + 25000; // Because I deleted 25000 quizzes
+
         res.json({
             users: users,
             quizPlayed: quizPlayed

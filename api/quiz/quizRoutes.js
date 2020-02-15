@@ -10,7 +10,7 @@ const isAdmin = require('../middlewares/isAdmin');
 router.post('/create-quiz', isAuth, quizController.createQuizQuestions);
 router.post('/quiz/:quizId', isAuth, quizController.startQuiz);
 
-router.delete('/delete-quizzes', isAdmin, quizController.deleteQuizzes);
+// router.delete('/delete-quizzes', isAdmin, quizController.deleteQuizzes);
 
 router.get('/get-users', isAuth, quizController.getUserNumOfGames);
 router.get('/num-of-games', isAuth, quizController.numOfGames);
