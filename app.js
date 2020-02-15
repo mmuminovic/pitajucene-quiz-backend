@@ -15,6 +15,8 @@ const quoteRoutes = require('./api/quotes/quotesRoutes');
 
 const MONGODB_URI = `${process.env.MONGOLAB_RED_URI}`;
 
+app.use(cors());
+
 app.use((req, res, next) => {
     res.header('Access-Control-Allow-Origin', '*');
     res.setHeader(
@@ -25,7 +27,6 @@ app.use((req, res, next) => {
     next();
 });
 
-app.use(cors());
 
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json());
