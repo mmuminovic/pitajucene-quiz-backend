@@ -391,22 +391,25 @@ exports.getRankingList = (req, res, next) => {
             $sort: { score: -1, duration: 1 }
         }
     ], (err, result) => {
-        const ranking = result.map((obj, i) => {
-            let minutes = Math.floor(obj.duration / 60000);
-            let seconds = ((obj.duration % 60000) / 1000).toFixed(0);
-            if (seconds.length === 1) {
-                seconds = `0${seconds}`;
+        let rankingList = [];
+        result.forEach(obj => {
+            if (!obj.user[0].isWinner) {
+                let minutes = Math.floor(obj.duration / 60000);
+                let seconds = ((obj.duration % 60000) / 1000).toFixed(0);
+                if (seconds.length === 1) {
+                    seconds = `0${seconds}`;
+                }
+                const data = {
+                    userId: obj.user[0]._id,
+                    fullName: obj.user[0].fullName,
+                    score: obj.score,
+                    duration: `${minutes}:${seconds}`
+                };
+                rankingList.push(data);
             }
-            const data = {
-                userId: obj.user[0]._id,
-                fullName: obj.user[0].fullName,
-                score: obj.score,
-                duration: `${minutes}:${seconds}`
-            };
-            return data;
         })
         res.json({
-            rankingList: ranking.slice(0, 20),
+            rankingList: rankingList.slice(0, 20),
             rankingListTitle: rankingListTitle
         });
         // res.json(result);
@@ -500,22 +503,46 @@ exports.getLastMonthList = (req, res, next) => {
             $sort: { score: -1, duration: 1 }
         }
     ], (err, result) => {
-        const ranking = result.map((obj, i) => {
-            let minutes = Math.floor(obj.duration / 60000);
-            let seconds = ((obj.duration % 60000) / 1000).toFixed(0);
-            if (seconds.length === 1) {
-                seconds = `0${seconds}`;
+        const numDaysBetween = (d1, d2) => {
+            var diff = Math.abs(d1.getTime() - d2.getTime());
+            return diff / (1000 * 60 * 60 * 24);
+        };
+        let rankingList = [];
+        result.forEach(obj => {
+            let minutes, seconds, data;
+            if (obj.user[0].isWinner) {
+                if (numDaysBetween(obj.user[0].updatedAt, lastDay) < 5) {
+                    minutes = Math.floor(obj.duration / 60000);
+                    seconds = ((obj.duration % 60000) / 1000).toFixed(0);
+                    if (seconds.length === 1) {
+                        seconds = `0${seconds}`;
+                    }
+                    data = {
+                        userId: obj.user[0]._id,
+                        fullName: obj.user[0].fullName,
+                        score: obj.score,
+                        duration: `${minutes}:${seconds}`
+                    };
+                    rankingList.push(data);
+                }
+            } else {
+                minutes = Math.floor(obj.duration / 60000);
+                seconds = ((obj.duration % 60000) / 1000).toFixed(0);
+                if (seconds.length === 1) {
+                    seconds = `0${seconds}`;
+                }
+                data = {
+                    userId: obj.user[0]._id,
+                    fullName: obj.user[0].fullName,
+                    score: obj.score,
+                    duration: `${minutes}:${seconds}`
+                };
+                rankingList.push(data);
             }
-            const data = {
-                userId: obj.user[0]._id,
-                fullName: obj.user[0].fullName,
-                score: obj.score,
-                duration: `${minutes}:${seconds}`
-            };
-            return data;
-        })
+        });
+
         res.json({
-            rankingList: ranking.slice(0, 10),
+            rankingList: rankingList.slice(0, 10),
             rankingListTitle: rankingListTitle
         });
     });
@@ -647,7 +674,7 @@ exports.getUserNumOfGames = (req, res, next) => {
         {
             $group:
             {
-                _id: { userId: "$user._id", fullName: "$user.fullName" },
+                _id: { userId: "$user._id", fullName: "$user.fullName", isWinner: "$user.isWinner" },
                 score: { $sum: 1 }
             }
         },
@@ -659,6 +686,7 @@ exports.getUserNumOfGames = (req, res, next) => {
             const data = {
                 userId: obj._id.userId[0],
                 fullName: obj._id.fullName[0],
+                isWinner: obj._id.isWinner[0],
                 numOfGames: obj.score
             };
             return data;
@@ -697,7 +725,7 @@ exports.numOfGames = (req, res, next) => {
         });
 
         quizPlayed = quizPlayed + 25000; // Because I deleted 25000 quizzes
-        
+
         res.json({
             quizPlayed: quizPlayed
         });

@@ -58,6 +58,7 @@ router.post('/signup', [
 
 // Get all users
 router.get('/users', isAdmin, userController.allUsers);
+router.get('/get-winners', isAdmin, userController.getWinners);
 
 // Get user's info
 router.get('/users/:userId', isAuth, userController.getUserInfo);
@@ -84,5 +85,6 @@ router.patch('/user/:userId',
 // Detele user
 router.delete('/user/:userId', isAdmin, userController.deleteUser);
 
+router.patch('/set-winner/:userId', isAdmin, userController.setWinner);
 
 module.exports = router;

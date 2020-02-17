@@ -110,6 +110,18 @@ exports.allUsers = (req, res, next) => {
         });
 }
 
+exports.getWinners = (req, res, next) => {
+    User
+        .find({ isWinner: true })
+        .sort({ fullName: 1 })
+        .then(result => {
+            const users = result.map(user => {
+                return { userId: user._id, fullName: user.fullName }
+            });
+            res.json(users);
+        });
+}
+
 // Edit user
 exports.editUser = (req, res, next) => {
     const errors = validationResult(req);
@@ -147,7 +159,8 @@ exports.getUserInfo = (req, res, next) => {
         .then(user => {
             const userData = {
                 email: user.email,
-                fullName: user.fullName
+                fullName: user.fullName,
+                isWinner: user.isWinner
             };
             Quiz
                 .find({ takenBy: userId })
@@ -220,6 +233,15 @@ exports.getUserInfo = (req, res, next) => {
                     })
                 })
         })
+}
+
+exports.setWinner = async (req, res, next) => {
+    const userId = req.params.userId;
+    const user = await User.findById(userId);
+    user.isWinner = !user.isWinner;
+    user.save().then(result => {
+        res.json(result);
+    });
 }
 
 

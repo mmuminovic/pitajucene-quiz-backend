@@ -6,6 +6,10 @@ const UserSchema = new Schema({
     email: String,
     password: String,
     fullName: String,
+    isWinner: {
+        type: Boolean,
+        default: false
+    },
     isAdmin: {
         type: Boolean,
         default: false
