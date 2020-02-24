@@ -572,7 +572,7 @@ exports.getTheBestRecords = (req, res, next) => {
         const ranking = result.map((obj, i) => {
             let minutes = Math.floor(obj.duration / 60000);
             let seconds = ((obj.duration % 60000) / 1000);
-            if (seconds.length === 1) {
+            if (seconds.toFixed(0).length === 1) {
                 seconds = `0${seconds}`;
             }
             const data = {
