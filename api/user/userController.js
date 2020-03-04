@@ -99,9 +99,10 @@ exports.signup = (req, res, next) => {
 
 // Get All Users
 exports.allUsers = (req, res, next) => {
+    const condition = req.query;
     User
         .find()
-        .sort({ fullName: 1 })
+        .sort(condition)
         .then(result => {
             const users = result.map(user => {
                 return { userId: user._id, fullName: user.fullName }
