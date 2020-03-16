@@ -7,7 +7,7 @@ const helmet = require('helmet');
 const compression = require('compression');
 const morgan = require('morgan');
 const cors = require('cors');
-const schedule = require('node-schedule');
+// const schedule = require('node-schedule');
 const questionRoutes = require('./api/quiz/quizRoutes');
 const userRoutes = require('./api/user/userRoutes');
 const reportsRoutes = require('./api/reports/reportsRouter');
@@ -43,5 +43,9 @@ app.use('/quotes', quoteRoutes);
 mongoose
     .connect(MONGODB_URI, { useNewUrlParser: true, useUnifiedTopology: true, useCreateIndex: true })
     .then(result => {
-        app.listen(process.env.PORT || 8080);
+        const server = app.listen(process.env.PORT || 8080);
+        const io = require('./socket').init(server);
+        io.on('connection', socket => {
+            console.log('connected');
+        })
     });

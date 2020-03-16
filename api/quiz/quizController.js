@@ -1,8 +1,12 @@
 const mongoose = require('mongoose');
+const io = require('../../socket');
+
 const { shuffle } = require('../shuffle');
 const Question = require('./questionModel');
 const Quiz = require('./quizModel');
 const User = require('../user/userModel');
+const MultiplayerGame = require('./mpQuizModel');
+
 const { validationResult } = require('express-validator');
 
 exports.deleteQuizzes = (req, res, next) => {
@@ -20,7 +24,9 @@ exports.createQuizQuestions = (req, res, next) => {
         .find()
         .then(result => {
             let allQuestions = [];
-            let pitanja1 = [], pitanja2 = [], pitanja3 = [];
+            let pitanja1 = [],
+                pitanja2 = [],
+                pitanja3 = [];
             for (let i of result) {
                 if (i.points === 10) {
                     pitanja1.push(i);
@@ -185,8 +191,7 @@ exports.startQuiz = (req, res, next) => {
                             });
                         }
                     })
-                }
-                else {
+                } else {
                     Question.findOne({ _id: questions[0].question })
                         .then(question => {
                             question.answeredIncorrectly = question.answeredIncorrectly + 1;
@@ -226,8 +231,7 @@ exports.getMyScore = (req, res, next) => {
     const firstDay = new Date(date.getFullYear(), date.getMonth(), 1);
     const lastDay = new Date(date.getFullYear(), date.getMonth() + 1, 0);
 
-    Quiz.aggregate([
-        {
+    Quiz.aggregate([{
             $match: { takenBy: userId, score: { $gt: 0 }, updatedAt: { $gt: firstDay, $lt: lastDay } }
         },
         {
@@ -265,8 +269,7 @@ exports.getMyScore = (req, res, next) => {
 exports.getMyBestScore = (req, res, next) => {
     const userId = mongoose.Types.ObjectId(req.params.userId);
 
-    Quiz.aggregate([
-        {
+    Quiz.aggregate([{
             $match: { takenBy: userId, score: { $gt: 0 } }
         },
         {
@@ -309,8 +312,7 @@ exports.scoreLastMonth = (req, res, next) => {
     const firstDay = new Date(date.getFullYear(), date.getMonth() - 1, 1);
     const lastDay = new Date(date.getFullYear(), date.getMonth(), 0);
 
-    Quiz.aggregate([
-        {
+    Quiz.aggregate([{
             $match: { takenBy: userId, score: { $gt: 0 }, updatedAt: { $gt: firstDay, $lt: lastDay } }
         },
         {
@@ -371,8 +373,7 @@ exports.getRankingList = (req, res, next) => {
 
     const rankingListTitle = `${time1} - ${time2}`;
 
-    Quiz.aggregate([
-        {
+    Quiz.aggregate([{
             $match: { score: { $gt: 0 }, updatedAt: { $gte: firstDay, $lt: lastDay } }
         },
         {
@@ -428,8 +429,7 @@ exports.getBestPlayerToday = (req, res, next) => {
     tomorrow.setMinutes(0);
     tomorrow.setSeconds(0);
 
-    Quiz.aggregate([
-        {
+    Quiz.aggregate([{
             $match: { score: { $gt: 0 }, updatedAt: { $gte: today, $lt: tomorrow } }
         },
         {
@@ -483,8 +483,7 @@ exports.getLastMonthList = (req, res, next) => {
 
     const rankingListTitle = `${time1} - ${time2}`;
 
-    Quiz.aggregate([
-        {
+    Quiz.aggregate([{
             $match: { score: { $gt: 0 }, updatedAt: { $gt: firstDay, $lt: lastDay } }
         },
         {
@@ -549,8 +548,7 @@ exports.getLastMonthList = (req, res, next) => {
 }
 
 exports.getTheBestRecords = (req, res, next) => {
-    Quiz.aggregate([
-        {
+    Quiz.aggregate([{
             $match: { score: { $gt: 0 } }
         },
         {
@@ -591,7 +589,9 @@ exports.getQuestionsByCondition = (req, res, next) => {
     let { condition, sortBy } = req.body;
     Question
         .find(condition)
-        .sort([[sortBy, -1]])
+        .sort([
+            [sortBy, -1]
+        ])
         .then(result => {
             res.json(result);
         })
@@ -661,8 +661,7 @@ exports.theMostUnsuccessfulQuestions = (req, res, next) => {
 }
 
 exports.getUserNumOfGames = (req, res, next) => {
-    Quiz.aggregate([
-        {
+    Quiz.aggregate([{
             $match: { score: { $gte: 0 } }
         },
         {
@@ -672,8 +671,7 @@ exports.getUserNumOfGames = (req, res, next) => {
             $lookup: { from: 'users', localField: 'takenBy', foreignField: '_id', as: 'user' }
         },
         {
-            $group:
-            {
+            $group: {
                 _id: { userId: "$user._id", fullName: "$user.fullName", isWinner: "$user.isWinner" },
                 score: { $sum: 1 }
             }
@@ -700,8 +698,7 @@ exports.getUserNumOfGames = (req, res, next) => {
 }
 
 exports.numOfGames = (req, res, next) => {
-    Quiz.aggregate([
-        {
+    Quiz.aggregate([{
             $match: { score: { $gte: 0 } }
         },
         {
@@ -711,8 +708,7 @@ exports.numOfGames = (req, res, next) => {
             $lookup: { from: 'users', localField: 'takenBy', foreignField: '_id', as: 'user' }
         },
         {
-            $group:
-            {
+            $group: {
                 _id: { userId: "$user._id", fullName: "$user.fullName" },
                 score: { $sum: 1 }
             }
@@ -734,8 +730,7 @@ exports.numOfGames = (req, res, next) => {
 
 exports.activeGames = (req, res, next) => {
     const time = new Date(Date.now() - 10 * 60 * 1000);
-    Quiz.aggregate([
-        {
+    Quiz.aggregate([{
             $match: { createdAt: { $gt: time }, active: true }
         },
         {
@@ -745,8 +740,7 @@ exports.activeGames = (req, res, next) => {
             $lookup: { from: 'users', localField: 'takenBy', foreignField: '_id', as: 'user' }
         },
         {
-            $group:
-            {
+            $group: {
                 _id: { userId: "$user._id", fullName: "$user.fullName" },
                 score: { $sum: 1 }
             }
@@ -775,8 +769,7 @@ exports.playedToday = (req, res, next) => {
     tomorrow.setMinutes(0);
     tomorrow.setSeconds(0);
 
-    Quiz.aggregate([
-        {
+    Quiz.aggregate([{
             $match: { createdAt: { $gt: today }, updatedAt: { $lt: tomorrow } }
         },
         {
@@ -786,8 +779,7 @@ exports.playedToday = (req, res, next) => {
             $lookup: { from: 'users', localField: 'takenBy', foreignField: '_id', as: 'user' }
         },
         {
-            $group:
-            {
+            $group: {
                 _id: { userId: "$user._id", fullName: "$user.fullName" },
                 score: { $sum: 1 }
             }
@@ -842,4 +834,265 @@ exports.changeQuestionsPoints = (req, res, next) => {
                 successfulChanges: changes
             })
         })
+}
+
+// MULTIPLAYER GAMES
+
+exports.createMultiplayerGame = async(req, res, next) => {
+    const player1ID = req.body.userId;
+    const player2email = req.body.opponent;
+
+    try {
+        const user1 = await User.findById(player1ID);
+        const user2 = await User.findOne({ email: player2email });
+
+        console.log(user1, user2);
+
+        const player1 = {
+            id: user1._id,
+            fullName: user1.fullName
+        };
+
+        const player2 = {
+            id: user2._id,
+            fullName: user2.fullName
+        };
+
+        const questions = await Question.find();
+
+        let allQuestions = [];
+        let pitanja1 = [],
+            pitanja2 = [],
+            pitanja3 = [];
+        for (let i of questions) {
+            if (i.points === 10) {
+                pitanja1.push(i);
+            } else if (i.points === 15) {
+                pitanja2.push(i);
+            } else if (i.points === 20) {
+                pitanja3.push(i);
+            }
+        }
+        pitanja1 = shuffle(pitanja1).slice(0, 10);
+        pitanja2 = shuffle(pitanja2).slice(0, 10);
+        pitanja3 = shuffle(pitanja3).slice(0, 10);
+        allQuestions = [...pitanja1, ...pitanja2, ...pitanja3];
+
+        let questionIds = allQuestions.map(q => {
+            const data = { question: q._id };
+            return data;
+        });
+
+        let answers = [allQuestions[0].correct, allQuestions[0].answer1, allQuestions[0].answer2, allQuestions[0].answer3];
+        answers = shuffle(answers);
+
+        const quizQuestions = new MultiplayerGame({
+            _id: new mongoose.Types.ObjectId(),
+            players: [player1.id, player2.id],
+            questions: [...questionIds]
+        });
+
+        quizQuestions.save()
+            .then(result => {
+                io.getIO().emit(`${player2.id}`, {
+                    action: 'mp game',
+                    data: {
+                        id: result._id,
+                        players: result.players
+                    }
+                });
+            });
+    } catch (error) {
+
+    }
+
+}
+
+exports.startMultiplayerGame = (req, res, next) => {
+    const quizId = req.params.quizId;
+    const ans = {
+        text: req.body.answer,
+        player: req.body.player
+    };
+    const continuing = req.body.continuing ? req.body.continuing : false;
+    const skip = req.body.skip;
+
+    Quiz
+        .findOne({ _id: quizId })
+        .where('createdAt').gt(new Date(Date.now() - 10 * 60 * 1000))
+        .populate({
+            path: 'questions.question',
+            model: 'Question'
+        })
+        .then(quiz => {
+            if (!quiz) {
+                res.json({
+                    message: 'Predviđeno vrijeme za igranje kviza je isteklo. Ostvareni rezultat biće sačuvan. Počnite ponovo.',
+                    gameover: true
+                });
+            } else if (!quiz.active) {
+                res.json({
+                    message: 'Kviz je završen. Počnite ponovo.',
+                    gameover: true
+                });
+            }
+            // else if (quiz.active && continuing) {
+            //     const q = quiz.questions.find(question => !question.isAnswered && !question.isAnsweredCorrectly && !question.skipped);
+            //     const mappedQuestions = quiz.questions.map(q => q.question._id);
+            //     const ordinalNumberOfQuestion = mappedQuestions.indexOf(q.question._id) + 1;
+            //     let answers = [q.question.correct, q.question.answer1, q.question.answer2, q.question.answer3];
+            //     answers = shuffle(answers);
+
+            //     res.json({
+            //         timeRemaining: Math.floor((quiz.createdAt - new Date(Date.now() - 10 * 60 * 1000)) / 1000),
+            //         question: {
+            //             id: q.question._id,
+            //             text: q.question.text,
+            //             answer0: answers[0],
+            //             answer1: answers[1],
+            //             answer2: answers[2],
+            //             answer3: answers[3],
+            //             points: q.question.points,
+            //             num: ordinalNumberOfQuestion
+            //         },
+            //         score1: quiz.score1,
+            //         score2: quiz.score2,
+            //         gameover: false
+            //     });
+            // } 
+            else if (quiz.active && skip) {
+                let questions = quiz.questions.filter(question => question.isAnswered === false);
+                quiz.questions[quiz.questions.indexOf(questions[0])].isAnswered = true;
+                quiz.save().then(result => {
+                    if (questions[1]) {
+                        let answers = [questions[1].question.correct, questions[1].question.answer1, questions[1].question.answer2, questions[1].question.answer3];
+                        answers = shuffle(answers);
+                        res.json({
+                            question: {
+                                id: questions[1].question._id,
+                                text: questions[1].question.text,
+                                answer0: answers[0],
+                                answer1: answers[1],
+                                answer2: answers[2],
+                                answer3: answers[3],
+                                points: questions[1].question.points
+                            },
+                            score1: quiz.score1,
+                            score2: quiz.score2,
+                            gameover: false
+                        });
+                    } else {
+                        quiz.active = false;
+                        quiz.save().then(result => {
+                            let winner = null;
+                            let draw = false;
+                            let message = 'Rezultat je nerešen.';
+                            if (quiz.score1 > quiz.score2) {
+                                winner = quiz.players[0].fullName;
+                                message = `Stigli ste do kraja kviza. Pobjednik je: ${winner}`;
+                            } else if (quiz.score2 > quiz.score1) {
+                                winner = quiz.players[1].fullName;
+                                message = `Stigli ste do kraja kviza. Pobjednik je: ${winner}`;
+                            } else {
+                                draw = true;
+                            }
+                            res.json({
+                                message: message,
+                                draw: draw,
+                                gameover: true,
+                                score1: quiz.score1,
+                                score2: quiz.score2
+                            });
+                        });
+                    }
+                });
+            } else {
+                let questions = quiz.questions.filter(question => question.isAnswered === false);
+
+                if (ans.text === quiz.questions.question.correct) {
+                    if (ans.player === 1) {
+                        quiz.score1 = quiz.score1 + questions[0].question.points;
+                    } else if (ans.player === 2) {
+                        quiz.score2 = quiz.score2 + questions[0].question.points;
+                    }
+                    io.getIO().emit(`${quizId}`, {
+                        action: 'correct',
+                        data: {
+                            correct: ans.text
+                        }
+                    });
+                } else {
+                    if (ans.player === 1) {
+                        quiz.score1 = quiz.score1 - questions[0].question.points / 2;
+                    } else if (ans.player === 2) {
+                        quiz.score2 = quiz.score2 - questions[0].question.points / 2;
+                    }
+                    io.getIO().emit(`${quizId}`, {
+                        action: 'false',
+                        data: {
+                            correct: quiz.questions.question.correct
+                        }
+                    });
+                }
+
+                quiz.questions[quiz.questions.indexOf(questions[0])].isAnswered = true;
+                quiz.save().then(result => {
+                    if (questions[1]) {
+                        let answers = [questions[1].question.correct, questions[1].question.answer1, questions[1].question.answer2, questions[1].question.answer3];
+                        answers = shuffle(answers);
+                        res.json({
+                            question: {
+                                id: questions[1].question._id,
+                                text: questions[1].question.text,
+                                answer0: answers[0],
+                                answer1: answers[1],
+                                answer2: answers[2],
+                                answer3: answers[3],
+                                points: questions[1].question.points
+                            },
+                            score1: quiz.score1,
+                            score2: quiz.score2,
+                            gameover: false
+                        });
+                    } else {
+                        quiz.active = false;
+                        quiz.save().then(result => {
+                            let winner = null;
+                            let draw = false;
+                            let message = 'Rezultat je nerešen.';
+                            if (quiz.score1 > quiz.score2) {
+                                winner = quiz.players[0].fullName;
+                                message = `Stigli ste do kraja kviza. Pobjednik je: ${winner}`;
+                            } else if (quiz.score2 > quiz.score1) {
+                                winner = quiz.players[1].fullName;
+                                message = `Stigli ste do kraja kviza. Pobjednik je: ${winner}`;
+                            } else {
+                                draw = true;
+                            }
+                            res.json({
+                                message: message,
+                                draw: draw,
+                                gameover: true,
+                                score1: quiz.score1,
+                                score2: quiz.score2
+                            });
+                        });
+                    }
+                })
+
+            }
+        });
+
+}
+
+exports.timeIsUp = async(req, res, next) => {
+    const quizId = req.body.quizId;
+    const player1 = req.body.player1;
+    const player2 = req.body.player2;
+
+    setTimeout(() => {
+        io.getIO().emit(`${quizId}`, {
+            action: 'skip'
+        });
+    }, 10000);
 }
