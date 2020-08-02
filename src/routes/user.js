@@ -3,11 +3,11 @@ const { body } = require('express-validator');
 const router = express.Router();
 const jwt = require('jsonwebtoken');
 
-const userController = require('./userController');
+const userController = require('../controllers/user');
 const isAuth = require('../middlewares/isAuth');
 const isAdmin = require('../middlewares/isAdmin');
 
-const User = require('./userModel');
+const User = require('../models/user');
 
 // Login
 router.post('/login',

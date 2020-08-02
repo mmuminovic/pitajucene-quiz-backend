@@ -1,6 +1,6 @@
 const mongoose = require('mongoose');
-const Quote = require('./quoteModel');
-const { shuffle } = require('../shuffle');
+const Quote = require('../models/quote');
+const { shuffle } = require('../utils/shuffle');
 
 exports.getAllQuotes = (req, res, next) => {
     Quote.find().then(quotes => {

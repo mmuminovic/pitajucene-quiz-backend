@@ -2,8 +2,8 @@ const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 // const schedule = require('node-schedule');
-const Quiz = require('../quiz/quizModel');
-const User = require('./userModel');
+const Quiz = require('../models/quiz');
+const User = require('../models/user');
 const { validationResult } = require('express-validator');
 
 // Login

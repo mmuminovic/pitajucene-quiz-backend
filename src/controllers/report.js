@@ -1,5 +1,5 @@
 const mongoose = require('mongoose');
-const Report = require('./reportsModel');
+const Report = require('../models/report');
 const { validationResult } = require('express-validator');
 
 exports.getReports = (req, res, next) => {
