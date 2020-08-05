@@ -12,35 +12,32 @@ router.post("/quiz/:quizId", isAuth, quizController.startQuiz);
 
 // router.delete('/delete-quizzes', isAdmin, quizController.deleteQuizzes);
 
-router.get("/get-users", isAuth, quizController.getUserNumOfGames);
-router.get("/num-of-games", isAuth, quizController.numOfGames);
+// router.get("/get-users", isAuth, quizController.getUserNumOfGames);
+// router.get("/num-of-games", isAuth, quizController.numOfGames);
 router.get("/active-games", isAuth, quizController.activeGames);
 router.delete("/quiz/:userId", isAdmin, quizController.deleteUserGames);
 // router.get('/best-today', isAuth, quizController.getBestPlayerToday);
 // router.get("/played-today", isAuth, quizController.playedToday);
 
 // Ranking list routes
-router.get("/ranking-list", quizController.getRankingLists);
+router.get("/ranking-lists", quizController.getRankingLists);
 router.get("/myscores", isAuth, quizController.getMyScores);
+router.get("/stats", isAuth, quizController.statistics);
 
 // Successful and unsuccessful questions
-router.get(
-  "/questions/successful",
-  isAdmin,
-  quizController.theMostSuccessfulQuestions
-);
-router.get(
-  "/questions/unsuccessful",
-  isAdmin,
-  quizController.theMostUnsuccessfulQuestions
-);
+// router.get(
+//   "/questions/successful",
+//   isAdmin,
+//   quizController.theMostSuccessfulQuestions
+// );
+// router.get(
+//   "/questions/unsuccessful",
+//   isAdmin,
+//   quizController.theMostUnsuccessfulQuestions
+// );
 
 // Question routes
-router.post(
-  "/get-by-condition",
-  isAdmin,
-  quizController.getQuestionsByCondition
-);
+router.get("/get-questions", isAdmin, quizController.getQuestions);
 
 // Add question
 router.post(

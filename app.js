@@ -1,11 +1,10 @@
 const express = require("express");
 const app = express();
 const mongoose = require("mongoose");
-const path = require("path");
 const bodyParser = require("body-parser");
 const helmet = require("helmet");
 const compression = require("compression");
-const morgan = require("morgan");
+// const morgan = require("morgan");
 const cors = require("cors");
 const quizRoutes = require("./src/routes/quiz");
 const userRoutes = require("./src/routes/user");

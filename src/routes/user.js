@@ -57,11 +57,11 @@ router.post('/signup', [
 ], userController.signup);
 
 // Get all users
-router.get('/users', isAdmin, userController.allUsers);
-router.get('/get-winners', isAdmin, userController.getWinners);
+// router.get('/users', isAdmin, userController.allUsers);
+// router.get('/get-winners', isAdmin, userController.getWinners);
 
 // Get user's info
-router.get('/users/:userId', isAuth, userController.getUserInfo);
+// router.get('/users/:userId', isAuth, userController.getUserInfo);
 
 // Edit user
 router.patch('/user/:userId',

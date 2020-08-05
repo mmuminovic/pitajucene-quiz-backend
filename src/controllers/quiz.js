@@ -648,11 +648,6 @@ exports.getRankingLists = async (req, res, next) => {
     today.setHours(0);
     today.setMinutes(0);
     today.setSeconds(0);
-    const tomorrow = new Date(today);
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    tomorrow.setHours(0);
-    tomorrow.setMinutes(0);
-    tomorrow.setSeconds(0);
 
     const resultToday = await Quiz.aggregate([
       {
@@ -724,8 +719,68 @@ exports.getRankingLists = async (req, res, next) => {
   }
 };
 
-exports.getQuestionsByCondition = async (req, res, next) => {
-  let { condition, sortBy } = req.body;
+exports.statistics = async (req, res) => {
+  const { month } = req.query;
+
+  try {
+    let games = await Quiz.aggregate([
+      {
+        $project: { createdAt: 1 },
+      },
+    ]);
+    games = games.map((quiz) => quiz.createdAt);
+
+    const data = {};
+
+    if (!month) {
+      const stats = {};
+      games.forEach((date, i) => {
+        let months = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+        const years = Object.keys(stats);
+        if (years.indexOf(new Date(date).getFullYear().toString()) !== -1) {
+          months = stats[new Date(date).getFullYear().toString()];
+        }
+        months[new Date(date).getMonth()]++;
+        Object.assign(stats, {
+          [new Date(date).getFullYear().toString()]: months,
+        });
+      });
+      data.stats = stats;
+      data.month = null;
+    } else {
+      const gamesInMonth = games.filter(
+        (game) => new Date(game).getMonth() === parseInt(month)
+      );
+      const statsMonth = {};
+      gamesInMonth.forEach((date) => {
+        let gamesInDays = [];
+        for (let i = 0; i < 28; i++) {
+          gamesInDays.push(0);
+        }
+        const years = Object.keys(statsMonth);
+        if (years.indexOf(new Date(date).getFullYear().toString()) !== -1) {
+          gamesInDays = statsMonth[new Date(date).getFullYear().toString()];
+        }
+        if (gamesInDays[new Date(date).getDate() - 1] === undefined) {
+          gamesInDays.push(0);
+        }
+        gamesInDays[new Date(date).getDate() - 1]++;
+        Object.assign(statsMonth, {
+          [new Date(date).getFullYear().toString()]: gamesInDays,
+        });
+      });
+      data.stats = null;
+      data.month = statsMonth;
+    }
+
+    res.json(data);
+  } catch (error) {
+    res.status(500).json(error);
+  }
+};
+
+exports.getQuestions = async (req, res, next) => {
+  let { condition, sortBy } = req.query;
   try {
     const result = await Question.find(condition).sort([[sortBy, -1]]);
     res.json(result);
@@ -788,117 +843,117 @@ exports.deleteQuestion = async (req, res, next) => {
   }
 };
 
-exports.theMostSuccessfulQuestions = (req, res, next) => {
-  Question.find()
-    .sort({ answeredCorrectly: -1 })
-    .where("answeredCorrectly")
-    .gt(0)
-    .limit(10)
-    .then((questions) => {
-      res.json(questions);
-    });
-};
+// exports.theMostSuccessfulQuestions = (req, res, next) => {
+//   Question.find()
+//     .sort({ answeredCorrectly: -1 })
+//     .where("answeredCorrectly")
+//     .gt(0)
+//     .limit(10)
+//     .then((questions) => {
+//       res.json(questions);
+//     });
+// };
 
-exports.theMostUnsuccessfulQuestions = (req, res, next) => {
-  Question.find()
-    .sort({ answeredIncorrectly: -1 })
-    .where("answeredIncorrectly")
-    .gt(0)
-    .limit(10)
-    .then((questions) => {
-      res.json(questions);
-    });
-};
+// exports.theMostUnsuccessfulQuestions = (req, res, next) => {
+//   Question.find()
+//     .sort({ answeredIncorrectly: -1 })
+//     .where("answeredIncorrectly")
+//     .gt(0)
+//     .limit(10)
+//     .then((questions) => {
+//       res.json(questions);
+//     });
+// };
 
-exports.getUserNumOfGames = (req, res, next) => {
-  Quiz.aggregate(
-    [
-      {
-        $match: { score: { $gte: 0 } },
-      },
-      {
-        $project: { _id: 1, takenBy: 1, score: 1 },
-      },
-      {
-        $lookup: {
-          from: "users",
-          localField: "takenBy",
-          foreignField: "_id",
-          as: "user",
-        },
-      },
-      {
-        $group: {
-          _id: {
-            userId: "$user._id",
-            fullName: "$user.fullName",
-            isWinner: "$user.isWinner",
-          },
-          score: { $sum: 1 },
-        },
-      },
-      { $sort: { score: -1 } },
-    ],
-    (err, result) => {
-      let quizPlayed = 0;
-      const users = result.map((obj) => {
-        quizPlayed = quizPlayed + obj.score;
-        const data = {
-          userId: obj._id.userId[0],
-          fullName: obj._id.fullName[0],
-          isWinner: obj._id.isWinner[0],
-          numOfGames: obj.score,
-        };
-        return data;
-      });
+// exports.getUserNumOfGames = (req, res, next) => {
+//   Quiz.aggregate(
+//     [
+//       {
+//         $match: { score: { $gte: 0 } },
+//       },
+//       {
+//         $project: { _id: 1, takenBy: 1, score: 1 },
+//       },
+//       {
+//         $lookup: {
+//           from: "users",
+//           localField: "takenBy",
+//           foreignField: "_id",
+//           as: "user",
+//         },
+//       },
+//       {
+//         $group: {
+//           _id: {
+//             userId: "$user._id",
+//             fullName: "$user.fullName",
+//             isWinner: "$user.isWinner",
+//           },
+//           score: { $sum: 1 },
+//         },
+//       },
+//       { $sort: { score: -1 } },
+//     ],
+//     (err, result) => {
+//       let quizPlayed = 0;
+//       const users = result.map((obj) => {
+//         quizPlayed = quizPlayed + obj.score;
+//         const data = {
+//           userId: obj._id.userId[0],
+//           fullName: obj._id.fullName[0],
+//           isWinner: obj._id.isWinner[0],
+//           numOfGames: obj.score,
+//         };
+//         return data;
+//       });
 
-      res.json({
-        users: users,
-        quizPlayed: quizPlayed,
-      });
-    }
-  );
-};
+//       res.json({
+//         users: users,
+//         quizPlayed: quizPlayed,
+//       });
+//     }
+//   );
+// };
 
-exports.numOfGames = (req, res, next) => {
-  Quiz.aggregate(
-    [
-      {
-        $match: { score: { $gte: 0 } },
-      },
-      {
-        $project: { _id: 1, takenBy: 1, score: 1 },
-      },
-      {
-        $lookup: {
-          from: "users",
-          localField: "takenBy",
-          foreignField: "_id",
-          as: "user",
-        },
-      },
-      {
-        $group: {
-          _id: { userId: "$user._id", fullName: "$user.fullName" },
-          score: { $sum: 1 },
-        },
-      },
-      { $sort: { score: -1 } },
-    ],
-    (err, result) => {
-      let quizPlayed = 0;
-      result.forEach((obj) => {
-        quizPlayed = quizPlayed + obj.score;
-      });
+// exports.numOfGames = (req, res, next) => {
+//   Quiz.aggregate(
+//     [
+//       {
+//         $match: { score: { $gte: 0 } },
+//       },
+//       {
+//         $project: { _id: 1, takenBy: 1, score: 1 },
+//       },
+//       {
+//         $lookup: {
+//           from: "users",
+//           localField: "takenBy",
+//           foreignField: "_id",
+//           as: "user",
+//         },
+//       },
+//       {
+//         $group: {
+//           _id: { userId: "$user._id", fullName: "$user.fullName" },
+//           score: { $sum: 1 },
+//         },
+//       },
+//       { $sort: { score: -1 } },
+//     ],
+//     (err, result) => {
+//       let quizPlayed = 0;
+//       result.forEach((obj) => {
+//         quizPlayed = quizPlayed + obj.score;
+//       });
 
-      quizPlayed = quizPlayed + 25000; // Because I deleted 25000 quizzes
+//       quizPlayed = quizPlayed + 25000; // Because I deleted 25000 quizzes
 
-      res.json({
-        quizPlayed: quizPlayed,
-      });
-    }
-  );
-};
+//       res.json({
+//         quizPlayed: quizPlayed,
+//       });
+//     }
+//   );
+// };
 
 exports.activeGames = (req, res, next) => {
   const time = new Date(Date.now() - 10 * 60 * 1000);
