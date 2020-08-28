@@ -6,14 +6,17 @@ const helmet = require("helmet");
 const compression = require("compression");
 // const morgan = require("morgan");
 const cors = require("cors");
-const quizRoutes = require("./src/routes/quiz");
-const userRoutes = require("./src/routes/user");
-const reportsRoutes = require("./src/routes/reports");
-const quoteRoutes = require("./src/routes/quotes");
+const { quizRoutes,
+  userRoutes,
+  reportsRoutes,
+  quoteRoutes,
+  statsRoutes,
+  questionRoutes,
+} = require('./src/routes')
+
 require("dotenv").config();
 
 const MONGODB_URI = `${process.env.MONGODB_URI}`;
-
 app.use(cors());
 
 app.use((req, res, next) => {
@@ -33,10 +36,12 @@ app.use(helmet());
 app.use(compression());
 // app.use(morgan('combined'));
 
-app.use(quizRoutes);
-app.use(userRoutes);
-app.use(reportsRoutes);
+app.use('/quiz', quizRoutes);
+app.use('/user', userRoutes);
+app.use('/reports',reportsRoutes);
 app.use("/quotes", quoteRoutes);
+app.use("/question", questionRoutes);
+app.use("/stats", statsRoutes);
 
 mongoose
   .connect(MONGODB_URI, {
