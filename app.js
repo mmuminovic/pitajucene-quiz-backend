@@ -50,6 +50,6 @@ mongoose
         useUnifiedTopology: true,
         useCreateIndex: true,
     })
-    .then((result) => {
+    .then(() => {
         app.listen(process.env.PORT || 8080)
     })
