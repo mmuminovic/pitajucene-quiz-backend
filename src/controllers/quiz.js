@@ -62,7 +62,11 @@ exports.createQuizQuestions = async (req, res, next) => {
             },
         })
     } catch (error) {
-        res.status(500).json({ error })
+        res.status(500).json({
+            error: {
+                message: 'Desila se greška na serveru. Pokušajte ponovo.',
+            },
+        })
     }
 }
 
@@ -99,17 +103,19 @@ exports.startQuiz = async (req, res, next) => {
     ])
 
     if (!quiz) {
-        response.statusCode = 403
-        response.body = {
-            message:
-                'Predviđeno vrijeme za igranje kviza je isteklo. Ostvareni rezultat biće sačuvan. Počnite ponovo.',
-        }
+        res.status(403).json({
+            error: {
+                message:
+                    'Predviđeno vrijeme za igranje kviza je isteklo. Ostvareni rezultat biće sačuvan. Počnite ponovo.',
+            },
+        })
         return
     } else if (!quiz.active) {
-        response.statusCode = 403
-        response.body = {
-            message: 'Kviz je završen. Počnite ponovo.',
-        }
+        res.status(403).json({
+            error: {
+                message: 'Kviz je završen. Počnite ponovo.',
+            },
+        })
         return
     } else if (quiz.active && continuing) {
         const q = quiz.questions.find(
@@ -126,7 +132,7 @@ exports.startQuiz = async (req, res, next) => {
         ]
         answers = shuffle(answers)
 
-        response.body = {
+        res.status(200).json({
             timeRemaining: Math.floor(
                 (quiz.createdAt -
                     Number(new Date(Date.now() - 30 * 60 * 1000))) /
@@ -143,7 +149,7 @@ exports.startQuiz = async (req, res, next) => {
                 num: ordinalNumberOfQuestion,
             },
             score: quiz.score,
-        }
+        })
     } else {
         let questions = quiz.questions.filter(
             (question) => question.isAnswered === false
