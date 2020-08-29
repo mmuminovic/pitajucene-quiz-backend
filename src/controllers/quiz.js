@@ -1,225 +1,228 @@
-const mongoose = require("mongoose");
+const mongoose = require('mongoose')
 
-const { shuffle } = require("../utils/shuffle");
-const Question = require("../models/question");
-const Quiz = require("../models/quiz");
+const { shuffle } = require('../utils/shuffle')
+const Question = require('../models/question')
+const Quiz = require('../models/quiz')
 
 exports.createQuizQuestions = async (req, res, next) => {
-  const userId = req.user.id;
-  try {
-    const questions = await Question.find();
-    let allQuestions = [];
-    let pitanja1 = [],
-      pitanja2 = [],
-      pitanja3 = [];
-    questions.forEach((item) => {
-      if (item.points === 10) {
-        pitanja1.push(item);
-      } else if (item.points === 15) {
-        pitanja2.push(item);
-      } else if (item.points === 20) {
-        pitanja3.push(item);
-      }
-    });
+    const userId = req.user.id
+    try {
+        const questions = await Question.find()
+        let allQuestions = []
+        let pitanja1 = [],
+            pitanja2 = [],
+            pitanja3 = []
+        questions.forEach((item) => {
+            if (item.points === 10) {
+                pitanja1.push(item)
+            } else if (item.points === 15) {
+                pitanja2.push(item)
+            } else if (item.points === 20) {
+                pitanja3.push(item)
+            }
+        })
 
-    allQuestions = [
-      ...shuffle(pitanja1).slice(0, 20),
-      ...shuffle(pitanja2).slice(0, 20),
-      ...shuffle(pitanja3).slice(0, 20),
-    ];
+        allQuestions = [
+            ...shuffle(pitanja1).slice(0, 20),
+            ...shuffle(pitanja2).slice(0, 20),
+            ...shuffle(pitanja3).slice(0, 20),
+        ]
 
-    let questionIds = allQuestions.map((q) => {
-      const data = { question: q._id };
-      return data;
-    });
+        let questionIds = allQuestions.map((q) => {
+            const data = { question: q._id }
+            return data
+        })
 
-    let answers = [
-      allQuestions[0].correct,
-      allQuestions[0].answer1,
-      allQuestions[0].answer2,
-      allQuestions[0].answer3,
-    ];
-    answers = shuffle(answers);
+        let answers = [
+            allQuestions[0].correct,
+            allQuestions[0].answer1,
+            allQuestions[0].answer2,
+            allQuestions[0].answer3,
+        ]
+        answers = shuffle(answers)
 
-    const quizQuestions = new Quiz({
-      _id: new mongoose.Types.ObjectId(),
-      takenBy: userId,
-      questions: [...questionIds],
-    });
+        const quizQuestions = new Quiz({
+            _id: new mongoose.Types.ObjectId(),
+            takenBy: userId,
+            questions: [...questionIds],
+        })
 
-    const newQuiz = await quizQuestions.save();
+        const newQuiz = await quizQuestions.save()
 
-    res.status(201).json({
-      quiz: newQuiz._id,
-      firstQuestion: {
-        id: allQuestions[0]._id,
-        text: allQuestions[0].text,
-        answer0: answers[0],
-        answer1: answers[1],
-        answer2: answers[2],
-        answer3: answers[3],
-        points: allQuestions[0].points,
-      },
-    });
-  } catch (error) {
-    res.status(500).json({ error });
-  }
-};
+        res.status(201).json({
+            quiz: newQuiz._id,
+            firstQuestion: {
+                id: allQuestions[0]._id,
+                text: allQuestions[0].text,
+                answer0: answers[0],
+                answer1: answers[1],
+                answer2: answers[2],
+                answer3: answers[3],
+                points: allQuestions[0].points,
+            },
+        })
+    } catch (error) {
+        res.status(500).json({ error })
+    }
+}
 
 exports.startQuiz = async (req, res, next) => {
-  const { quizId } = req.params;
-  const { answer: ans, continuing: isQuizStarted } = req.body.answer;
-  const continuing = isQuizStarted ? true : false;
+    const { quizId } = req.params
+    const { answer: ans, continuing: isQuizStarted } = req.body.answer
+    const continuing = isQuizStarted ? true : false
 
-  const quiz = await Quiz.aggregate([
-    {
-      $match: {
-        _id: quizId,
-        createdAt: { $gt: new Date(Date.now() - 30 * 60 * 1000) },
-      },
-    },
-    {
-      $project: {
-        createdAt: 1,
-        updatedAt: 1,
-        questions: 1,
-        takenBy: 1,
-        score: 1,
-        active: 1,
-      },
-    },
-    {
-      $lookup: {
-        from: "questions",
-        localField: "_id.questions.question",
-        foreignField: "_id",
-        as: "question",
-      },
-    },
-  ]);
+    const quiz = await Quiz.aggregate([
+        {
+            $match: {
+                _id: quizId,
+                createdAt: { $gt: new Date(Date.now() - 30 * 60 * 1000) },
+            },
+        },
+        {
+            $project: {
+                createdAt: 1,
+                updatedAt: 1,
+                questions: 1,
+                takenBy: 1,
+                score: 1,
+                active: 1,
+            },
+        },
+        {
+            $lookup: {
+                from: 'questions',
+                localField: '_id.questions.question',
+                foreignField: '_id',
+                as: 'question',
+            },
+        },
+    ])
 
-  if (!quiz) {
-    response.statusCode = 403;
-    response.body = {
-      message:
-        "Predviđeno vrijeme za igranje kviza je isteklo. Ostvareni rezultat biće sačuvan. Počnite ponovo.",
-    };
-    return;
-  } else if (!quiz.active) {
-    response.statusCode = 403;
-    response.body = {
-      message: "Kviz je završen. Počnite ponovo.",
-    };
-    return;
-  } else if (quiz.active && continuing) {
-    const q = quiz.questions.find(
-      (question) => !question.isAnswered && !question.isAnsweredCorrectly
-    );
-    const mappedQuestions = quiz.questions.map((q) => q.question._id);
-    const ordinalNumberOfQuestion = mappedQuestions.indexOf(q.question._id) + 1;
-    let answers = [
-      q.question.correct,
-      q.question.answer1,
-      q.question.answer2,
-      q.question.answer3,
-    ];
-    answers = shuffle(answers);
+    if (!quiz) {
+        response.statusCode = 403
+        response.body = {
+            message:
+                'Predviđeno vrijeme za igranje kviza je isteklo. Ostvareni rezultat biće sačuvan. Počnite ponovo.',
+        }
+        return
+    } else if (!quiz.active) {
+        response.statusCode = 403
+        response.body = {
+            message: 'Kviz je završen. Počnite ponovo.',
+        }
+        return
+    } else if (quiz.active && continuing) {
+        const q = quiz.questions.find(
+            (question) => !question.isAnswered && !question.isAnsweredCorrectly
+        )
+        const mappedQuestions = quiz.questions.map((q) => q.question._id)
+        const ordinalNumberOfQuestion =
+            mappedQuestions.indexOf(q.question._id) + 1
+        let answers = [
+            q.question.correct,
+            q.question.answer1,
+            q.question.answer2,
+            q.question.answer3,
+        ]
+        answers = shuffle(answers)
 
-    response.body = {
-      timeRemaining: Math.floor(
-        (quiz.createdAt - Number(new Date(Date.now() - 30 * 60 * 1000))) / 1000
-      ),
-      question: {
-        id: q.question._id,
-        text: q.question.text,
-        answer0: answers[0],
-        answer1: answers[1],
-        answer2: answers[2],
-        answer3: answers[3],
-        points: q.question.points,
-        num: ordinalNumberOfQuestion,
-      },
-      score: quiz.score,
-    };
-  } else {
-    let questions = quiz.questions.filter(
-      (question) => question.isAnswered === false
-    );
-
-    let correct = ans === questions[0].question.correct;
-
-    quiz.score = correct
-      ? quiz.score + questions[0].question.points
-      : quiz.score;
-    quiz.questions[
-      quiz.questions.indexOf(questions[0])
-    ].isAnsweredCorrectly = correct;
-    quiz.questions[quiz.questions.indexOf(questions[0])].isAnswered = true;
-
-    const question = await Question.findOne({
-      _id: questions[0].question,
-    });
-    if (correct) {
-      question.answeredCorrectly = question.answeredCorrectly + 1;
+        response.body = {
+            timeRemaining: Math.floor(
+                (quiz.createdAt -
+                    Number(new Date(Date.now() - 30 * 60 * 1000))) /
+                    1000
+            ),
+            question: {
+                id: q.question._id,
+                text: q.question.text,
+                answer0: answers[0],
+                answer1: answers[1],
+                answer2: answers[2],
+                answer3: answers[3],
+                points: q.question.points,
+                num: ordinalNumberOfQuestion,
+            },
+            score: quiz.score,
+        }
     } else {
-      question.answeredIncorrectly = question.answeredIncorrectly + 1;
+        let questions = quiz.questions.filter(
+            (question) => question.isAnswered === false
+        )
+
+        let correct = ans === questions[0].question.correct
+
+        quiz.score = correct
+            ? quiz.score + questions[0].question.points
+            : quiz.score
+        quiz.questions[
+            quiz.questions.indexOf(questions[0])
+        ].isAnsweredCorrectly = correct
+        quiz.questions[quiz.questions.indexOf(questions[0])].isAnswered = true
+
+        const question = await Question.findOne({
+            _id: questions[0].question,
+        })
+        if (correct) {
+            question.answeredCorrectly = question.answeredCorrectly + 1
+        } else {
+            question.answeredIncorrectly = question.answeredIncorrectly + 1
+        }
+
+        await question.save()
+
+        await quiz.save()
+
+        if (questions[1]) {
+            let answers = [
+                questions[1].question.correct,
+                questions[1].question.answer1,
+                questions[1].question.answer2,
+                questions[1].question.answer3,
+            ]
+            answers = shuffle(answers)
+            res.status(201).json({
+                question: {
+                    id: questions[1].question._id,
+                    text: questions[1].question.text,
+                    answer0: answers[0],
+                    answer1: answers[1],
+                    answer2: answers[2],
+                    answer3: answers[3],
+                    points: questions[1].question.points,
+                },
+                previousQuestion: {
+                    correctAnswer: questions[0].question.correct,
+                    link: questions[0].question.link,
+                },
+                score: quiz.score,
+                incorrect: !correct,
+                gameover: false,
+            })
+        } else {
+            quiz.active = false
+            await quiz.save()
+
+            res.status(200).json({
+                message: 'Stigli ste do kraja kviza. Čestitamo!',
+                finished: true,
+                gameover: true,
+                score: quiz.score,
+                incorrect: !correct,
+                previousQuestion: {
+                    correctAnswer: questions[0].question.correct,
+                    link: questions[0].question.link,
+                },
+            })
+        }
     }
-
-    await question.save();
-
-    await quiz.save();
-
-    if (questions[1]) {
-      let answers = [
-        questions[1].question.correct,
-        questions[1].question.answer1,
-        questions[1].question.answer2,
-        questions[1].question.answer3,
-      ];
-      answers = shuffle(answers);
-      res.status(201).json({
-        question: {
-          id: questions[1].question._id,
-          text: questions[1].question.text,
-          answer0: answers[0],
-          answer1: answers[1],
-          answer2: answers[2],
-          answer3: answers[3],
-          points: questions[1].question.points,
-        },
-        previousQuestion: {
-          correctAnswer: questions[0].question.correct,
-          link: questions[0].question.link,
-        },
-        score: quiz.score,
-        incorrect: !correct,
-        gameover: false,
-      });
-    } else {
-      quiz.active = false;
-      await quiz.save();
-
-      res.status(200).json({
-        message: "Stigli ste do kraja kviza. Čestitamo!",
-        finished: true,
-        gameover: true,
-        score: quiz.score,
-        incorrect: !correct,
-        previousQuestion: {
-          correctAnswer: questions[0].question.correct,
-          link: questions[0].question.link,
-        },
-      });
-    }
-  }
-};
+}
 
 exports.deleteUserGames = (req, res, next) => {
-  const userId = req.params.userId;
-  Quiz.deleteMany({ takenBy: userId }).then((result) => {
-    res.json({ message: "Deleted successfully" });
-  });
-};
+    const userId = req.params.userId
+    Quiz.deleteMany({ takenBy: userId }).then((result) => {
+        res.json({ message: 'Deleted successfully' })
+    })
+}
 
 // exports.theMostSuccessfulQuestions = (req, res, next) => {
 //   Question.find()

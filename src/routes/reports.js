@@ -1,11 +1,11 @@
-const express = require("express");
-const { body } = require("express-validator");
-const router = express.Router();
-const isAuth = require("../middlewares/isAuth");
-const isAdmin = require("../middlewares/isAdmin");
-const reportsController = require("../controllers/report");
+const express = require('express')
+const { body } = require('express-validator')
+const router = express.Router()
+const isAuth = require('../middlewares/isAuth')
+const isAdmin = require('../middlewares/isAdmin')
+const reportsController = require('../controllers/report')
 
-router.get("/get-reports", isAdmin, reportsController.getReports);
+router.get('/get-reports', isAdmin, reportsController.getReports)
 // router.post(
 //   "/send-report",
 //   [
@@ -19,4 +19,4 @@ router.get("/get-reports", isAdmin, reportsController.getReports);
 // );
 // router.patch("/edit-report/:reportId", isAdmin, reportsController.editReport);
 
-module.exports = router;
+module.exports = router

@@ -1,92 +1,93 @@
-const mongoose = require("mongoose");
-const bcrypt = require("bcryptjs");
-const jwt = require("jsonwebtoken");
+const mongoose = require('mongoose')
+const bcrypt = require('bcryptjs')
+const jwt = require('jsonwebtoken')
 // const schedule = require('node-schedule');
-const Quiz = require("../models/quiz");
-const User = require("../models/user");
-const { validationResult } = require("express-validator");
+const Quiz = require('../models/quiz')
+const User = require('../models/user')
+const { validationResult } = require('express-validator')
 
 // Login
 exports.login = async (req, res, next) => {
-  const errors = validationResult(req);
-  if (!errors.isEmpty()) {
-    const error = new Error("Validation failed.");
-    error.data = errors.array();
-    return res.json({ message: error.data[0].msg });
-  }
-  const { email, password } = req.body;
-  try {
-    const user = await User.findOne({ email: email });
-    if (!user) {
-      return res.json({
-        message: "Neispravan email ili šifra",
-      });
+    const errors = validationResult(req)
+    if (!errors.isEmpty()) {
+        const error = new Error('Validation failed.')
+        error.data = errors.array()
+        return res.json({ message: error.data[0].msg })
     }
-    bcrypt.compare(password, user.password, (err, result) => {
-      if (err) {
-        return res.json({
-          message: "Neispravan email ili šifra",
-        });
-      }
-      if (result) {
-        const token = jwt.sign(
-          {
-            email: user.email,
-            id: user._id.toString(),
-            fullName: user.fullName,
-            isAdmin: user.isAdmin,
-          },
-          process.env.JWT_KEY,
-          { expiresIn: "1d" }
-        );
-        return res.status(200).json({
-          success: "Prijava uspješna!",
-          token: token,
-          userId: user._id.toString(),
-        });
-      } else {
-        return res.status(422).json({
-          message: "Neispravan email ili šifra",
-        });
-      }
-    });
-  } catch (error) {
-    res.status(500).json(error);
-  }
-};
+    const { email, password } = req.body
+    try {
+        const user = await User.findOne({ email: email })
+        if (!user) {
+            return res.json({
+                message: 'Neispravan email ili šifra',
+            })
+        }
+        bcrypt.compare(password, user.password, (err, result) => {
+            if (err) {
+                return res.json({
+                    message: 'Neispravan email ili šifra',
+                })
+            }
+            if (result) {
+                const token = jwt.sign(
+                    {
+                        email: user.email,
+                        id: user._id.toString(),
+                        fullName: user.fullName,
+                        isAdmin: user.isAdmin,
+                    },
+                    process.env.JWT_KEY,
+                    { expiresIn: '1d' }
+                )
+                return res.status(200).json({
+                    success: 'Prijava uspješna!',
+                    token: token,
+                    userId: user._id.toString(),
+                })
+            } else {
+                return res.status(422).json({
+                    message: 'Neispravan email ili šifra',
+                })
+            }
+        })
+    } catch (error) {
+        res.status(500).json(error)
+    }
+}
 
 // Signup
 exports.signup = async (req, res, next) => {
-  const errors = validationResult(req);
-  if (!errors.isEmpty()) {
-    const error = new Error("Validation failed.");
-    error.statusCode = 422;
-    error.data = errors.array();
-    return res.json({ error: error.data[0].msg });
-  }
-  const { email, fullName, password } = req.body;
-  let isAdmin = false;
-  if (req.body.isAdmin === `${process.env.ADMIN_KEY}`) {
-    isAdmin = true;
-  }
-  try {
-    const hashedPw = await bcrypt.hash(password, 12);
-    const user = new User({
-      _id: mongoose.Types.ObjectId(),
-      email: email,
-      password: hashedPw,
-      fullName: fullName,
-      isAdmin: isAdmin,
-      currentScore: 0,
-    });
-    const result = await user.save();
-    res
-      .status(201)
-      .json({ message: "Registracija uspješna!", userId: result._id });
-  } catch (error) {
-    res.status(500).json(error);
-  }
-};
+    const errors = validationResult(req)
+    if (!errors.isEmpty()) {
+        const error = new Error('Validation failed.')
+        error.statusCode = 422
+        error.data = errors.array()
+        return res.json({ error: error.data[0].msg })
+    }
+    const { email, fullName, password } = req.body
+    let isAdmin = false
+    if (req.body.isAdmin === `${process.env.ADMIN_KEY}`) {
+        isAdmin = true
+    }
+    try {
+        const hashedPw = await bcrypt.hash(password, 12)
+        const user = new User({
+            _id: mongoose.Types.ObjectId(),
+            email: email,
+            password: hashedPw,
+            fullName: fullName,
+            isAdmin: isAdmin,
+            currentScore: 0,
+        })
+        const result = await user.save()
+        res.status(201).json({
+            message: 'Registracija uspješna!',
+            userId: result._id,
+        })
+    } catch (error) {
+        res.status(500).json(error)
+    }
+}
 
 // Get All Users
 // exports.allUsers = (req, res, next) => {
@@ -114,36 +115,36 @@ exports.signup = async (req, res, next) => {
 
 // Edit user
 exports.editUser = async (req, res, next) => {
-  const errors = validationResult(req);
-  if (!errors.isEmpty()) {
-    const error = new Error("Validation failed.");
-    error.data = errors.array();
-    return res.json({ error: error.data[0].msg });
-  }
+    const errors = validationResult(req)
+    if (!errors.isEmpty()) {
+        const error = new Error('Validation failed.')
+        error.data = errors.array()
+        return res.json({ error: error.data[0].msg })
+    }
 
-  const { password } = req.body;
-  const { userId } = req.params;
+    const { password } = req.body
+    const { userId } = req.params
 
-  try {
-    const hashedPw = await bcrypt.hash(password, 12);
-    const user = await User.findOne({ _id: userId });
-    user.password = hashedPw;
-    await user.save();
-    res.json({ message: "Šifra uspešno promijenjena." });
-  } catch (error) {
-    res.status(500).json(error);
-  }
-};
+    try {
+        const hashedPw = await bcrypt.hash(password, 12)
+        const user = await User.findOne({ _id: userId })
+        user.password = hashedPw
+        await user.save()
+        res.json({ message: 'Šifra uspešno promijenjena.' })
+    } catch (error) {
+        res.status(500).json(error)
+    }
+}
 
 exports.deleteUser = async (req, res, next) => {
-  const userId = req.params.userId;
-  try {
-    const result = await User.deleteOne({ _id: userId });
-    res.json(result);
-  } catch (error) {
-    res.status(500).json(error);
-  }
-};
+    const userId = req.params.userId
+    try {
+        const result = await User.deleteOne({ _id: userId })
+        res.json(result)
+    } catch (error) {
+        res.status(500).json(error)
+    }
+}
 
 // Get user's info
 // exports.getUserInfo = (req, res, next) => {
@@ -263,13 +264,13 @@ exports.deleteUser = async (req, res, next) => {
 // };
 
 exports.setWinner = async (req, res, next) => {
-  const userId = req.params.userId;
-  try {
-    const user = await User.findById(userId);
-    user.isWinner = !user.isWinner;
-    const result = await user.save();
-    res.json(result);
-  } catch (error) {
-    res.status(500).json(error);
-  }
-};
+    const userId = req.params.userId
+    try {
+        const user = await User.findById(userId)
+        user.isWinner = !user.isWinner
+        const result = await user.save()
+        res.json(result)
+    } catch (error) {
+        res.status(500).json(error)
+    }
+}

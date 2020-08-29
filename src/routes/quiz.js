@@ -1,15 +1,20 @@
-const express = require("express");
-const { body } = require("express-validator");
-const router = express.Router();
+const express = require('express')
+const { body } = require('express-validator')
+const router = express.Router()
 
-const quizController = require("../controllers/quiz");
-const isAuth = require("../middlewares/isAuth");
-const isAdmin = require("../middlewares/isAdmin");
+const {
+    createQuizQuestions,
+    startQuiz,
+    deleteUserGames,
+} = require('../controllers/quiz')
+const isAuth = require('../middlewares/isAuth')
+const isAdmin = require('../middlewares/isAdmin')
 
 // Quiz routes
-router.post("/start", isAuth, quizController.createQuizQuestions);
-router.post("/:quizId", isAuth, quizController.startQuiz);
+router.post('/start', isAuth, createQuizQuestions)
 
-router.delete("/:userId", isAdmin, quizController.deleteUserGames);
+router.post('/:quizId', isAuth, startQuiz)
 
-module.exports = router;
+router.delete('/:userId', isAdmin, deleteUserGames)
+
+module.exports = router
