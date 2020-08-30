@@ -11,6 +11,6 @@ const isAuth = require('../middlewares/isAuth')
 // Ranking list routes
 router.get('/ranking-lists', getRankingLists)
 router.get('/myscores', isAuth, getMyScores)
-router.get('/stats', isAuth, statistics)
+router.get('/get-stats', isAuth, statistics)
 
 module.exports = router

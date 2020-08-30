@@ -1,3 +1,4 @@
+const mongoose = require('mongoose')
 const Quiz = require('../models/quiz')
 
 exports.statistics = async (req, res) => {
@@ -69,17 +70,18 @@ exports.statistics = async (req, res) => {
 
 // My scores
 exports.getMyScores = async (req, res, next) => {
-    const userId = mongoose.Types.ObjectId(req.params.userId)
+    const userId = mongoose.Types.ObjectId(req.user.id)
     const date = new Date()
     const firstDay = new Date(date.getFullYear(), date.getMonth(), 1)
     const lastDay = new Date(date.getFullYear(), date.getMonth() + 1, 0)
 
+    const { email, fullName } = req.user
     try {
         const result = await Quiz.aggregate([
             {
                 $match: {
                     takenBy: userId,
-                    score: { $gt: 0 },
+                    score: { $gte: 0 },
                     updatedAt: { $gt: firstDay, $lt: lastDay },
                 },
             },
@@ -212,6 +214,10 @@ exports.getMyScores = async (req, res, next) => {
         }
 
         res.status(200).json({
+            user: {
+                email,
+                fullName,
+            },
             score: ranking[0],
             theBestScore: topRecords[0],
             scoreLastMonth: rankingLastPeriod[0],
