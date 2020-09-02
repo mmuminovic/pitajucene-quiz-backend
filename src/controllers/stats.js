@@ -259,7 +259,7 @@ exports.getRankingLists = async (req, res, next) => {
     const time1 = day1 + ' ' + month1 + ' ' + year1
     const time2 = day2 + ' ' + month2 + ' ' + year2
 
-    const rankingListTitle = `${time1} - ${time2}`
+    const rankingThisMonthTitle = `${time1} - ${time2}`
 
     try {
         // Ranking list
@@ -319,6 +319,11 @@ exports.getRankingLists = async (req, res, next) => {
                 rankingList.push(data)
             }
         })
+
+        const currentRankingList = {
+            rankingList: rankingList.slice(0, 20),
+            rankingListTitle: rankingThisMonthTitle,
+        }
 
         // Ranking list of last month
         let rankingLastPeriod
@@ -569,6 +574,7 @@ exports.getRankingLists = async (req, res, next) => {
             return data
         })
 
+        return res.json(rankingToday)
         theBestToday = rankingToday[0]
 
         const time = new Date(Date.now() - 30 * 60 * 1000)
@@ -605,10 +611,7 @@ exports.getRankingLists = async (req, res, next) => {
             playedToday: rankingToday.length,
             activeGames,
             theBestToday,
-            currentRankingList: {
-                rankingList: rankingList.slice(0, 20),
-                rankingListTitle,
-            },
+            currentRankingList,
             rankingLastPeriod,
             top10ranking,
         })

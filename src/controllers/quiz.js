@@ -75,10 +75,11 @@ exports.startQuiz = async (req, res, next) => {
     const { answer: ans, continuing: isQuizStarted } = req.body.answer
     const continuing = isQuizStarted ? true : false
 
+    console.log(quizId)
     const quiz = await Quiz.aggregate([
         {
             $match: {
-                _id: quizId,
+                _id: mongoose.Types.ObjectId(quizId),
                 createdAt: { $gt: new Date(Date.now() - 30 * 60 * 1000) },
             },
         },
@@ -102,7 +103,7 @@ exports.startQuiz = async (req, res, next) => {
         },
     ])
 
-    if (!quiz) {
+    if (!quiz[0]) {
         res.status(403).json({
             error: {
                 message:
@@ -110,14 +111,14 @@ exports.startQuiz = async (req, res, next) => {
             },
         })
         return
-    } else if (!quiz.active) {
+    } else if (!quiz[0].active) {
         res.status(403).json({
             error: {
                 message: 'Kviz je završen. Počnite ponovo.',
             },
         })
         return
-    } else if (quiz.active && continuing) {
+    } else if (quiz[0].active && continuing) {
         const q = quiz.questions.find(
             (question) => !question.isAnswered && !question.isAnsweredCorrectly
         )
@@ -157,13 +158,13 @@ exports.startQuiz = async (req, res, next) => {
 
         let correct = ans === questions[0].question.correct
 
-        quiz.score = correct
-            ? quiz.score + questions[0].question.points
-            : quiz.score
-        quiz.questions[
-            quiz.questions.indexOf(questions[0])
+        quiz[0].score = correct
+            ? quiz[0].score + questions[0].question.points
+            : quiz[0].score
+        quiz[0].questions[
+            quiz[0].questions.indexOf(questions[0])
         ].isAnsweredCorrectly = correct
-        quiz.questions[quiz.questions.indexOf(questions[0])].isAnswered = true
+        quiz[0].questions[quiz[0].questions.indexOf(questions[0])].isAnswered = true
 
         const question = await Question.findOne({
             _id: questions[0].question,
@@ -176,7 +177,7 @@ exports.startQuiz = async (req, res, next) => {
 
         await question.save()
 
-        await quiz.save()
+        await quiz[0].save()
 
         if (questions[1]) {
             let answers = [
@@ -200,19 +201,19 @@ exports.startQuiz = async (req, res, next) => {
                     correctAnswer: questions[0].question.correct,
                     link: questions[0].question.link,
                 },
-                score: quiz.score,
+                score: quiz[0].score,
                 incorrect: !correct,
                 gameover: false,
             })
         } else {
-            quiz.active = false
-            await quiz.save()
+            quiz[0].active = false
+            await quiz[0].save()
 
             res.status(200).json({
                 message: 'Stigli ste do kraja kviza. Čestitamo!',
                 finished: true,
                 gameover: true,
-                score: quiz.score,
+                score: quiz[0].score,
                 incorrect: !correct,
                 previousQuestion: {
                     correctAnswer: questions[0].question.correct,
