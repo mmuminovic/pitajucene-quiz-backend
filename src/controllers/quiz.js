@@ -1,5 +1,4 @@
 const mongoose = require('mongoose')
-
 const { shuffle } = require('../utils/shuffle')
 const Question = require('../models/question')
 const Quiz = require('../models/quiz')
@@ -48,7 +47,7 @@ exports.createQuizQuestions = async (req, res, next) => {
         })
 
         const newQuiz = await quizQuestions.save()
-
+        
         res.status(201).json({
             quiz: newQuiz._id,
             firstQuestion: {
@@ -164,7 +163,9 @@ exports.startQuiz = async (req, res, next) => {
         quiz[0].questions[
             quiz[0].questions.indexOf(questions[0])
         ].isAnsweredCorrectly = correct
-        quiz[0].questions[quiz[0].questions.indexOf(questions[0])].isAnswered = true
+        quiz[0].questions[
+            quiz[0].questions.indexOf(questions[0])
+        ].isAnswered = true
 
         const question = await Question.findOne({
             _id: questions[0].question,

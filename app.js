@@ -18,8 +18,8 @@ const {
 require('dotenv').config()
 
 const MONGODB_URI = `${process.env.MONGODB_URI}`
-app.use(cors())
 
+app.use(cors())
 app.use((req, res, next) => {
     res.header('Access-Control-Allow-Origin', '*')
     res.setHeader(

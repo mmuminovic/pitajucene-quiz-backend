@@ -1,6 +1,40 @@
 const mongoose = require('mongoose')
 const Quiz = require('../models/quiz')
 
+exports.homeStats = async (req, res) => {
+    const time = new Date(Date.now() - 30 * 60 * 1000)
+    const today = new Date(Date.now())
+    today.setHours(0)
+    today.setMinutes(0)
+    today.setSeconds(0)
+    today.setMilliseconds(0)
+    try {
+        const gamesToday = await Quiz.aggregate([
+            {
+                $match: { createdAt: { $gt: today }, active: true },
+            },
+            {
+                $project: { _id: 1, createdAt: 1 },
+            },
+        ])
+
+        const activeGames = gamesToday.filter((game) => game.createdAt > time)
+
+        const data = {
+            gamesToday: gamesToday.length,
+            activeGames: activeGames.length,
+        }
+
+        return res.status(200).json(data)
+    } catch (error) {
+        res.status(500).json({
+            error: {
+                message: 'Greška na serveru. Pokušajte ponovo.',
+            },
+        })
+    }
+}
+
 exports.statistics = async (req, res) => {
     const { month } = req.query
 
@@ -520,6 +554,8 @@ exports.getRankingLists = async (req, res, next) => {
         today.setHours(0)
         today.setMinutes(0)
         today.setSeconds(0)
+        today.setMilliseconds(0)
+        
         const resultToday = await Quiz.aggregate([
             {
                 $match: {
@@ -574,43 +610,47 @@ exports.getRankingLists = async (req, res, next) => {
             return data
         })
 
-        return res.json(rankingToday)
-        theBestToday = rankingToday[0]
+        rankingListToday = {
+            rankingList: rankingListLastPeriod.slice(0, 10),
+            rankingListTitle: rankingListTitle,
+        }
 
-        const time = new Date(Date.now() - 30 * 60 * 1000)
-        const activeGamesResult = await Quiz.aggregate([
-            {
-                $match: { createdAt: { $gt: time }, active: true },
-            },
-            {
-                $project: { _id: 1, takenBy: 1, score: 1 },
-            },
-            {
-                $lookup: {
-                    from: 'users',
-                    localField: 'takenBy',
-                    foreignField: '_id',
-                    as: 'user',
-                },
-            },
-            {
-                $group: {
-                    _id: { userId: '$user._id', fullName: '$user.fullName' },
-                    score: { $sum: 1 },
-                },
-            },
-            { $sort: { score: -1 } },
-        ])
-        let activeGames = 0
+        // theBestToday = rankingToday[0]
 
-        activeGamesResult.forEach((obj) => {
-            activeGames = activeGames + obj.score
-        })
+        // const time = new Date(Date.now() - 30 * 60 * 1000)
+        // const activeGamesResult = await Quiz.aggregate([
+        //     {
+        //         $match: { createdAt: { $gt: time }, active: true },
+        //     },
+        //     {
+        //         $project: { _id: 1, takenBy: 1, score: 1 },
+        //     },
+        //     {
+        //         $lookup: {
+        //             from: 'users',
+        //             localField: 'takenBy',
+        //             foreignField: '_id',
+        //             as: 'user',
+        //         },
+        //     },
+        //     {
+        //         $group: {
+        //             _id: { userId: '$user._id', fullName: '$user.fullName' },
+        //             score: { $sum: 1 },
+        //         },
+        //     },
+        //     { $sort: { score: -1 } },
+        // ])
+        // let activeGames = 0
+
+        // activeGamesResult.forEach((obj) => {
+        //     activeGames = activeGames + obj.score
+        // })
 
         res.status(200).json({
             playedToday: rankingToday.length,
-            activeGames,
-            theBestToday,
+            // activeGames,
+            rankingListToday,
             currentRankingList,
             rankingLastPeriod,
             top10ranking,
