@@ -19,7 +19,6 @@ require('dotenv').config()
 
 const MONGODB_URI = `${process.env.MONGODB_URI}`
 
-app.use(cors())
 app.use((req, res, next) => {
     res.header('Access-Control-Allow-Origin', '*')
     res.setHeader(
@@ -36,6 +35,8 @@ app.use(bodyParser.json())
 app.use(helmet())
 app.use(compression())
 // app.use(morgan('combined'));
+
+app.use(cors({ origin: '*' }))
 
 app.use('/quiz', quizRoutes)
 app.use('/user', userRoutes)
