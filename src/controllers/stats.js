@@ -555,7 +555,7 @@ exports.getRankingLists = async (req, res, next) => {
         today.setMinutes(0)
         today.setSeconds(0)
         today.setMilliseconds(0)
-        
+
         const resultToday = await Quiz.aggregate([
             {
                 $match: {
@@ -653,7 +653,9 @@ exports.getRankingLists = async (req, res, next) => {
             rankingListToday,
             currentRankingList,
             rankingLastPeriod,
-            top10ranking,
+            top10ranking: {
+                rankingList: top10ranking,
+            },
         })
     } catch (error) {
         res.status(500).json({ error })

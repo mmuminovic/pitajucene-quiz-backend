@@ -1,7 +1,6 @@
 const mongoose = require('mongoose')
 const bcrypt = require('bcryptjs')
 const jwt = require('jsonwebtoken')
-// const schedule = require('node-schedule');
 const Quiz = require('../models/quiz')
 const User = require('../models/user')
 const { validationResult } = require('express-validator')
@@ -12,19 +11,19 @@ exports.login = async (req, res, next) => {
     if (!errors.isEmpty()) {
         const error = new Error('Validation failed.')
         error.data = errors.array()
-        return res.json({ message: error.data[0].msg })
+        return res.status(422).json({ message: error.data[0].msg })
     }
     const { email, password } = req.body
     try {
         const user = await User.findOne({ email: email })
         if (!user) {
-            return res.json({
+            return res.status(422).json({
                 message: 'Neispravan email ili šifra',
             })
         }
         bcrypt.compare(password, user.password, (err, result) => {
             if (err) {
-                return res.json({
+                return res.status(422).json({
                     message: 'Neispravan email ili šifra',
                 })
             }
@@ -62,7 +61,7 @@ exports.signup = async (req, res, next) => {
         const error = new Error('Validation failed.')
         error.statusCode = 422
         error.data = errors.array()
-        return res.json({ error: error.data[0].msg })
+        return res.status(422).json({ error: error.data[0].msg })
     }
     const { email, fullName, password } = req.body
     let isAdmin = false
