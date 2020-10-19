@@ -74,7 +74,7 @@ exports.startQuiz = async (req, res, next) => {
     try {
         const quiz = await Quiz.findOne({ _id: quizId })
             .where('createdAt')
-            .gt(new Date(Date.now() - 10 * 60 * 1000))
+            .gt(new Date(Date.now() - 30 * 60 * 1000))
             .populate({
                 path: 'questions.question',
                 model: 'Question',
