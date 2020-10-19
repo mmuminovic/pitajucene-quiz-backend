@@ -81,7 +81,8 @@ exports.startQuiz = async (req, res, next) => {
             })
 
         if (!quiz) {
-            res.status(403).json({
+            res.status(200).json({
+                active: false,
                 error: {
                     message:
                         'Predviđeno vrijeme za igranje kviza je isteklo. Ostvareni rezultat biće sačuvan. Počnite ponovo.',
@@ -89,7 +90,8 @@ exports.startQuiz = async (req, res, next) => {
             })
             return
         } else if (!quiz.active) {
-            res.status(403).json({
+            res.status(200).json({
+                active: false,
                 error: {
                     message: 'Kviz je završen. Počnite ponovo.',
                 },
@@ -122,6 +124,7 @@ exports.startQuiz = async (req, res, next) => {
                         num,
                     },
                     score: quiz.score,
+                    active: true,
                 })
             } else {
                 const correct = ans === questions[0].question.correct
@@ -172,6 +175,7 @@ exports.startQuiz = async (req, res, next) => {
                         score: quiz.score,
                         incorrect: !correct,
                         gameover: false,
+                        active: true,
                     })
                 } else {
                     quiz.active = false
@@ -179,7 +183,7 @@ exports.startQuiz = async (req, res, next) => {
 
                     res.status(200).json({
                         message: 'Stigli ste do kraja kviza. Čestitamo!',
-                        finished: true,
+                        active: true,
                         gameover: true,
                         score: quiz.score,
                         incorrect: !correct,
