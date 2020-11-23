@@ -1,0 +1,11 @@
+FROM node
+
+RUN mkdir /usr/src/kviz
+
+COPY . /usr/src/kviz
+
+WORKDIR /usr/src/kviz
+
+RUN yarn
+
+CMD ["yarn", "start"]
