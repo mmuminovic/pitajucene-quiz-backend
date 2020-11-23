@@ -247,14 +247,16 @@ exports.getMyScores = async (req, res, next) => {
             ]
         }
 
+        const nullResponse = { score: null, duration: null }
+
         res.status(200).json({
             user: {
                 email,
                 fullName,
             },
-            score: ranking[0],
-            theBestScore: topRecords[0],
-            scoreLastMonth: rankingLastPeriod[0],
+            score: ranking[0] || nullResponse,
+            theBestScore: topRecords[0] || nullResponse,
+            scoreLastMonth: rankingLastPeriod[0] || nullResponse,
         })
     } catch (error) {
         res.status(500).json({ error })
