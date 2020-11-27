@@ -4,7 +4,7 @@ const mongoose = require('mongoose')
 const bodyParser = require('body-parser')
 const helmet = require('helmet')
 const compression = require('compression')
-// const morgan = require("morgan");
+const morgan = require('morgan')
 const cors = require('cors')
 const {
     quizRoutes,
@@ -14,6 +14,13 @@ const {
     statsRoutes,
     questionRoutes,
 } = require('./src/routes')
+const rfs = require('rotating-file-stream')
+
+// create a rotating write stream
+const stream = rfs.createStream('access.log', {
+    interval: '1d',
+    path: __dirname,
+})
 
 require('dotenv').config()
 
@@ -28,6 +35,8 @@ app.use((req, res, next) => {
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization')
     next()
 })
+
+app.use(morgan('combined', { stream }))
 
 app.use(bodyParser.urlencoded({ extended: false }))
 app.use(bodyParser.json())

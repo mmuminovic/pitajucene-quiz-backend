@@ -2,3 +2,4 @@
 nodemon.json
 .env
 yarn.lock
+access.log
