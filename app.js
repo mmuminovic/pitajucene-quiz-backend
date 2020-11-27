@@ -36,7 +36,14 @@ app.use((req, res, next) => {
     next()
 })
 
-app.use(morgan('combined', { stream }))
+app.use(
+    morgan('combined', {
+        stream,
+        skip: function (req, res) {
+            return res.statusCode < 400
+        },
+    })
+)
 
 app.use(bodyParser.urlencoded({ extended: false }))
 app.use(bodyParser.json())
