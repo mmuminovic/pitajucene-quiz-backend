@@ -8,12 +8,16 @@ const { validationResult } = require('express-validator')
 // Login
 exports.login = async (req, res, next) => {
     const errors = validationResult(req)
-    if (!errors.isEmpty()) {
+    if (!errors.isEmpty() && !req.body.isGuest) {
         const error = new Error('Validation failed.')
         error.data = errors.array()
         return res.status(422).json({ message: error.data[0].msg })
     }
-    const { email, password } = req.body
+    let { email, password } = req.body
+    if (req.body.isGuest) {
+        email = process.env.GUEST_EMAIL
+        password = process.env.GUEST_PASSWORD
+    }
     try {
         const user = await User.findOne({ email: email })
         if (!user) {
@@ -34,9 +38,10 @@ exports.login = async (req, res, next) => {
                         id: user._id.toString(),
                         fullName: user.fullName,
                         isAdmin: user.isAdmin,
+                        isGuest: user.isGuest,
                     },
                     process.env.JWT_KEY,
-                    { expiresIn: '1d' }
+                    { expiresIn: '365d' }
                 )
                 return res.status(200).json({
                     success: 'Prijava uspješna!',
@@ -65,18 +70,22 @@ exports.signup = async (req, res, next) => {
     }
     const { email, fullName, password } = req.body
     let isAdmin = false
+    let isGuest = false
     if (req.body.isAdmin === `${process.env.ADMIN_KEY}`) {
         isAdmin = true
+    }
+    if (req.body.isGuest) {
+        isGuest = true
     }
     try {
         const hashedPw = await bcrypt.hash(password, 12)
         const user = new User({
             _id: mongoose.Types.ObjectId(),
-            email: email,
+            email,
             password: hashedPw,
-            fullName: fullName,
-            isAdmin: isAdmin,
-            currentScore: 0,
+            fullName,
+            isAdmin,
+            isGuest,
         })
         const result = await user.save()
         res.status(201).json({

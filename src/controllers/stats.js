@@ -109,7 +109,8 @@ exports.getMyScores = async (req, res, next) => {
     const firstDay = new Date(date.getFullYear(), date.getMonth(), 1)
     const lastDay = new Date(date.getFullYear(), date.getMonth() + 1, 0)
 
-    const { email, fullName } = req.user
+    const { email, fullName, isGuest } = req.user
+
     try {
         const result = await Quiz.aggregate([
             {
@@ -248,15 +249,27 @@ exports.getMyScores = async (req, res, next) => {
         }
 
         const nullResponse = { score: null, duration: null }
+        let scores
+        if (isGuest) {
+            scores = {
+                score: nullResponse,
+                theBestScore: nullResponse,
+                scoreLastMonth: nullResponse,
+            }
+        } else {
+            scores = {
+                score: ranking[0] || nullResponse,
+                theBestScore: topRecords[0] || nullResponse,
+                scoreLastMonth: rankingLastPeriod[0] || nullResponse,
+            }
+        }
 
         res.status(200).json({
             user: {
                 email,
                 fullName,
             },
-            score: ranking[0] || nullResponse,
-            theBestScore: topRecords[0] || nullResponse,
-            scoreLastMonth: rankingLastPeriod[0] || nullResponse,
+            ...scores,
         })
     } catch (error) {
         res.status(500).json({ error })
@@ -352,7 +365,9 @@ exports.getRankingLists = async (req, res, next) => {
                     score: obj.score,
                     duration: `${minutes}:${seconds}`,
                 }
-                rankingList.push(data)
+                if (!obj.user[0].isGuest) {
+                    rankingList.push(data)
+                }
             }
         })
 
@@ -484,7 +499,7 @@ exports.getRankingLists = async (req, res, next) => {
                     duration: `${minutes}:${seconds}`,
                 }
             }
-            if (data) {
+            if (data && !obj.user[0].isGuest) {
                 rankingListLastPeriod.push(data)
             }
         })
@@ -532,7 +547,8 @@ exports.getRankingLists = async (req, res, next) => {
             },
         ])
 
-        const ranking = resultTopTen.map((obj, i) => {
+        const ranking = []
+        resultTopTen.forEach((obj, i) => {
             let minutes = Math.floor(obj.duration / 60000)
             let seconds = (obj.duration % 60000) / 1000
             if (seconds.toFixed(0).length === 1) {
@@ -544,7 +560,9 @@ exports.getRankingLists = async (req, res, next) => {
                 score: obj.score,
                 duration: `${minutes}:${seconds}`,
             }
-            return data
+            if (!obj.user[0].isGuest) {
+                ranking.push(data)
+            }
         })
 
         top10ranking = ranking.slice(0, 10)
@@ -597,7 +615,8 @@ exports.getRankingLists = async (req, res, next) => {
             },
         ])
 
-        const rankingToday = resultToday.map((obj, i) => {
+        const rankingToday = []
+        resultToday.forEach((obj, i) => {
             let minutes = Math.floor(obj.duration / 60000)
             let seconds = ((obj.duration % 60000) / 1000).toFixed(0)
             if (seconds.length === 1) {
@@ -609,11 +628,13 @@ exports.getRankingLists = async (req, res, next) => {
                 score: obj.score,
                 duration: `${minutes}:${seconds}`,
             }
-            return data
+            if (!obj.user[0].isGuest) {
+                rankingToday.push(data)
+            }
         })
 
         rankingListToday = {
-            rankingList: rankingListLastPeriod.slice(0, 10),
+            rankingList: rankingToday.slice(0, 10),
             rankingListTitle: rankingListTitle,
         }
 
