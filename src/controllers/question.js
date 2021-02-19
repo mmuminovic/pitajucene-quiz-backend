@@ -1,5 +1,6 @@
 const { validationResult } = require('express-validator')
 const Question = require('../models/question')
+const mongoose = require('mongoose')
 
 exports.getQuestions = async (req, res, next) => {
     let { condition, sortBy } = req.query
