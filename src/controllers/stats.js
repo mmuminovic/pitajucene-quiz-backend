@@ -1,5 +1,6 @@
 const mongoose = require('mongoose');
 const Quiz = require('../models/quiz');
+const User = require('../models/user');
 
 exports.homeStats = async (req, res) => {
   const time = new Date(Date.now() - 30 * 60 * 1000);
@@ -100,7 +101,7 @@ exports.getMyScores = async (req, res, next) => {
   const firstDay = new Date(date.getFullYear(), date.getMonth(), 1);
   const lastDay = new Date(date.getFullYear(), date.getMonth() + 1, 0);
 
-  const { email, fullName, isGuest } = req.user;
+  const { email, fullName, isGuest } = await User.findOne({ _id: userId });
 
   try {
     const result = await Quiz.aggregate([
